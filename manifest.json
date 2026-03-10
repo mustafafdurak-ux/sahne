@@ -1,0 +1,18 @@
+{
+  "name": "Sahne",
+  "short_name": "Sahne",
+  "description": "Sinemaseverlerin buluşma yeri",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf8f3",
+  "theme_color": "#1a1a1a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%231a1a1a' rx='80'/><text y='320' x='80' font-size='300' font-family='serif'>🎬</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

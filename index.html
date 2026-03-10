@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#1a1a1a"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Sahne"/>
+  <title>Sahne 🎬</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body,#root{height:100%;width:100%;}
+    body{background:#faf8f3;font-family:'Outfit',sans-serif;overflow-x:hidden;padding-top:env(safe-area-inset-top);}
+    ::-webkit-scrollbar{display:none;}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef } = React;
+
+const API_KEY = "86028ead1ff02303725e433fb9203325";
+const BASE = "https://api.themoviedb.org/3";
+const IMG = "https://image.tmdb.org/t/p/w342";
+const IMG_BIG = "https://image.tmdb.org/t/p/w780";
+
+// ─── In-memory store (artifact compatible) ───
+const _store = {};
+const LS = {
+  get: (k, def) => _store[k] !== undefined ? _store[k] : def,
+  set: (k, v) => { _store[k] = v; },
+};
+
+// ─── Demo users ───
+const DEMO_USERS = [
+  { id:1, name:"Ayşe Kaya",  username:"ayse_kaya",  avatar:"🎭", bio:"Nolan ve Kubrick hayranı 🎬", followers:1240, following:340, color:"#c2410c" },
+  { id:2, name:"Mert Demir", username:"mert_demir", avatar:"🎥", bio:"Korku & gerilim sever 😱",    followers:892,  following:210, color:"#6d28d9" },
+  { id:3, name:"Zeynep Al",  username:"zeynep_al",  avatar:"🎞️", bio:"Bağımsız sinema aşığı 🌙",  followers:430,  following:180, color:"#0e7490" },
+  { id:4, name:"Can Yılmaz", username:"can_yilmaz", avatar:"📽️", bio:"Film müziği & sinematografi",followers:3200, following:520, color:"#065f46" },
+];
+
+// ─── Builtin content ───
+const BUILTIN = [
+  { id:"b1", type:"film", title:"Interstellar",    year:"2014", genre:"Bilim Kurgu",      rating:8.7, votes:2100000, recommend:92, poster:`${IMG}/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg`, backdrop:"https://image.tmdb.org/t/p/w780/rAiYTfKGqDCRIIqo664sY9XZIvQ.jpg", overview:"Dünya artık insanlığı besleyemiyorken bir grup kaşif yeni bir yurt arar.", trailer:"https://www.youtube.com/watch?v=zSWdZVtXT7E", addedBy:4 },
+  { id:"b2", type:"film", title:"The Godfather",   year:"1972", genre:"Suç & Dram",       rating:9.2, votes:1900000, recommend:98, poster:`${IMG}/3bhkrj58Vtu7enYsLegHejKInlB.jpg`, backdrop:null, overview:"Corleone ailesinin epik suç destanı.", trailer:"https://www.youtube.com/watch?v=sY1S34973zA", addedBy:1 },
+  { id:"b3", type:"film", title:"Inception",       year:"2010", genre:"Aksiyon & Bilim Kurgu", rating:8.8, votes:2400000, recommend:94, poster:`${IMG}/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg`, backdrop:null, overview:"Rüya içinde rüya... zihinlere sızan bir hırsızın hikayesi.", trailer:"https://www.youtube.com/watch?v=YoHD9XEInc0", addedBy:2 },
+  { id:"b4", type:"film", title:"Parasite",        year:"2019", genre:"Dram & Gerilim",   rating:8.5, votes:820000,  recommend:96, poster:`${IMG}/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg`, backdrop:null, overview:"Yoksul aile, zengin ailenin hayatına sızar. Oscar'lı Kore başyapıtı.", trailer:"https://www.youtube.com/watch?v=5xH0HfJHsaY", addedBy:3 },
+  { id:"b5", type:"film", title:"The Dark Knight", year:"2008", genre:"Aksiyon & Suç",    rating:9.0, votes:2700000, recommend:97, poster:`${IMG}/qJ2tW6WMUDux911r6m7haRef0WH.jpg`, backdrop:null, overview:"Batman Joker'in kaos dolu saldırısına karşı durur.", trailer:"https://www.youtube.com/watch?v=EXeTwQWrcwY", addedBy:2 },
+  { id:"b6", type:"film", title:"Spirited Away",   year:"2001", genre:"Animasyon",        rating:8.6, votes:730000,  recommend:95, poster:`${IMG}/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg`, backdrop:null, overview:"Ruhlar dünyasına sürüklenen Chihiro'nun mücadelesi.", trailer:"https://www.youtube.com/watch?v=ByXuk9QqQkk", addedBy:3 },
+  { id:"b7", type:"film", title:"Fight Club",      year:"1999", genre:"Dram & Gerilim",   rating:8.8, votes:2200000, recommend:91, poster:`${IMG}/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg`, backdrop:null, overview:"Uykusuzluk hastası bir adamın bir sabun satıcısıyla dövüş kulübü kurması.", trailer:"https://www.youtube.com/watch?v=SUXWAEX2jlg", addedBy:4 },
+  { id:"b8", type:"film", title:"Pulp Fiction",    year:"1994", genre:"Suç & Dram",       rating:8.9, votes:2000000, recommend:93, poster:`${IMG}/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg`, backdrop:null, overview:"LA'da birbiriyle kesişen suç hikayeleri. Tarantino başyapıtı.", trailer:"https://www.youtube.com/watch?v=s7EdQ4FqbhY", addedBy:1 },
+  // Diziler
+  { id:"s1", type:"dizi", title:"Breaking Bad",    year:"2008-2013", genre:"Suç & Dram",  rating:9.5, votes:1900000, recommend:99, poster:`${IMG}/ggFHVNu6YYI5L9pCfOacjizRGt.jpg`, backdrop:null, overview:"Kimya öğretmeni Walter White'ın uyuşturucu imparatorluğuna giden yolculuğu.", trailer:"https://www.youtube.com/watch?v=HhesaQXLuRY", seasons:[{s:1,ep:7,rating:9.0},{s:2,ep:13,rating:9.2},{s:3,ep:13,rating:9.3},{s:4,ep:13,rating:9.6},{s:5,ep:16,rating:9.5}], addedBy:4 },
+  { id:"s2", type:"dizi", title:"Chernobyl",       year:"2019", genre:"Tarih & Dram",     rating:9.4, votes:820000,  recommend:98, poster:`${IMG}/hlLXt2tOPT6RRnjiUmoxyG1LTFi.jpg`, backdrop:null, overview:"1986 nükleer felaketi ve kapsamını gizlemeye çalışanların hikayesi.", trailer:"https://www.youtube.com/watch?v=s9APLXM9Ei8", seasons:[{s:1,ep:5,rating:9.4}], addedBy:1 },
+  { id:"s3", type:"dizi", title:"Severance",       year:"2022", genre:"Bilim Kurgu & Gerilim", rating:8.7, votes:290000, recommend:95, poster:`${IMG}/oNnG6jD4M1mnFKONBJmELdL2CaY.jpg`, backdrop:null, overview:"İş ve özel hayatı zihinsel olarak birbirinden ayıran çalışanların hikayesi.", trailer:"https://www.youtube.com/watch?v=xEQP4VVuyrY", seasons:[{s:1,ep:9,rating:8.7},{s:2,ep:10,rating:8.9}], addedBy:3 },
+  { id:"s4", type:"dizi", title:"The Bear",        year:"2022", genre:"Dram & Komedi",    rating:8.7, votes:180000,  recommend:96, poster:`${IMG}/sHFlbKS3WLqMnp9t2ghADIJFnuQ.jpg`, backdrop:null, overview:"Chicago'da bir restoranı devralan genç şefin aile ve mutfak gerginlikleriyle mücadelesi.", trailer:"https://www.youtube.com/watch?v=ex3C1-5Dhb8", seasons:[{s:1,ep:8,rating:8.6},{s:2,ep:10,rating:8.8},{s:3,ep:10,rating:8.7}], addedBy:2 },
+];
+
+const DEMO_STORIES = [
+  { userId:1, title:"Interstellar yeniden izledim", movie:"Interstellar", time:"3s", seen:false },
+  { userId:4, title:"Breaking Bad başladım 🔥", movie:"Breaking Bad", time:"1s", seen:false },
+  { userId:2, title:"Bu hafta Parasite var", movie:"Parasite", time:"5s", seen:true },
+  { userId:3, title:"Severance izleyin lütfen!", movie:"Severance", time:"8s", seen:false },
+];
+
+const LISTS = {
+  watched:   { label:"İzlediklerim",      icon:"✓",  color:"#1a1a1a" },
+  watchlist: { label:"İzleyeceklerim",    icon:"⏰", color:"#1a1a1a" },
+  recommend: { label:"Şiddetle Tavsiye",  icon:"👍", color:"#1a1a1a" },
+  avoid:     { label:"Zaman Kaybı",       icon:"🚫", color:"#1a1a1a" },
+  bucket:    { label:"Ölmeden Önce",      icon:"★",  color:"#1a1a1a" },
+};
+
+const GENRE_MAP = {28:"Aksiyon",12:"Macera",16:"Animasyon",35:"Komedi",80:"Suç",99:"Belgesel",18:"Dram",10751:"Aile",14:"Fantazi",27:"Korku",9648:"Gizem",10749:"Romantik",878:"Bilim Kurgu",53:"Gerilim",10752:"Savaş"};
+const pct = v => Math.round((v||0)*10);
+const sc = (v,dm) => { const p=pct(v); return p>=75?(dm?"#4ade80":"#16a34a"):p>=50?(dm?"#fbbf24":"#ca8a04"):(dm?"#f87171":"#dc2626"); };
+
+// ─── Theme ───
+const LIGHT = { bg:"#faf8f3", card:"#fff", border:"#e8e4dc", text:"#1a1a1a", sub:"#888", faint:"#bbb", strip:"#e8e0d0", stripHole:"#fff", stripBorder:"#d0c8b8", input:"#fff", inputBorder:"#e8e4dc", navBg:"#faf8f3" };
+const DARK  = { bg:"#0f0f0f", card:"#1a1a1a", border:"#2a2a2a", text:"#f0ece4", sub:"#888", faint:"#555", strip:"#1a1a1a", stripHole:"#2a2a2a", stripBorder:"#333", input:"#1a1a1a", inputBorder:"#333", navBg:"#0f0f0f" };
+
+// ─── SVG Icons ───
+const ListIcon = ({type,active,size=20,color="#1a1a1a"}) => {
+  const s = {stroke:color,fill:"none",strokeWidth:"2.2",strokeLinecap:"round",strokeLinejoin:"round"};
+  const af = active ? color : "none";
+  const icons = {
+    watched:   <svg width={size} height={size} viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" {...s} strokeWidth="2.5" fill="none"/></svg>,
+    watchlist: <svg width={size} height={size} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" {...s}/><polyline points="12 6 12 12 16 14" {...s}/></svg>,
+    recommend: <svg width={size} height={size} viewBox="0 0 24 24" fill={af}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" {...s}/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" {...s}/></svg>,
+    avoid:     <svg width={size} height={size} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" {...s}/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke={color} strokeWidth="2.2" strokeLinecap="round"/></svg>,
+    bucket:    <svg width={size} height={size} viewBox="0 0 24 24" fill={af}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" {...s}/></svg>,
+  };
+  return icons[type]||null;
+};
+
+const FilmStrip = ({t,dm}) => (
+  <div style={{position:"fixed",left:0,right:0,top:0,height:8,zIndex:100,background:t.strip,display:"flex",gap:3,padding:"0 8px",alignItems:"center",borderBottom:`1px solid ${t.stripBorder}`}}>
+    {Array.from({length:24}).map((_,i)=><div key={i} style={{width:18,height:5,background:t.stripHole,borderRadius:1,border:`1px solid ${t.stripBorder}`,flexShrink:0}}/>)}
+  </div>
+);
+
+const globalCSS = (dm) => `
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600;700;800&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{background:${dm?"#0f0f0f":"#faf8f3"};font-family:'Outfit',sans-serif;transition:background 0.3s;}
+  ::-webkit-scrollbar{display:none;}
+  button,input,textarea,select{font-family:'Outfit',sans-serif;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes heartBeat{0%{transform:scale(1)}40%{transform:scale(1.45)}70%{transform:scale(0.88)}100%{transform:scale(1)}}
+  @keyframes storyPulse{0%,100%{box-shadow:0 0 0 2px #f97316}50%{box-shadow:0 0 0 3px #f97316,0 0 12px #f97316aa}}
+  .fade-up{animation:fadeUp 0.3s ease both;}
+  .slide-up{animation:slideUp 0.38s cubic-bezier(0.32,0.72,0,1);}
+  .press{transition:transform 0.12s,opacity 0.12s;cursor:pointer;}
+  .press:active{transform:scale(0.91);opacity:0.6;}
+  .heart{animation:heartBeat 0.45s ease;}
+  .story-ring{animation:storyPulse 2s ease-in-out infinite;}
+`;
+
+// ──────────────────────────────────────────────
+function App() {
+  const [dm, setDm] = useState(()=>LS.get("sahne_dm", false));
+  const t = dm ? DARK : LIGHT;
+
+  // Auth
+  const [authPage, setAuthPage] = useState("login"); // login | register
+  const [currentUser, setCurrentUser] = useState(()=>LS.get("sahne_user", null));
+  const [users, setUsers] = useState(()=>LS.get("sahne_users", []));
+
+  // App state
+  const [page, setPage] = useState("feed");
+  const [feedContent, setFeedContent] = useState([]);
+  const [discoverMovies, setDiscoverMovies] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [pgNum, setPgNum] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [search, setSearch] = useState("");
+  const [searchRes, setSearchRes] = useState([]);
+  const [userMovies, setUserMovies] = useState(()=>LS.get("sahne_lists", {}));
+  const [customContent, setCustomContent] = useState(()=>LS.get("sahne_custom", []));
+  const [selItem, setSelItem] = useState(null);
+  const [itemDetail, setItemDetail] = useState(null);
+  const [noteText, setNoteText] = useState("");
+  const [starRating, setStarRating] = useState(0);
+  const [hoverStar, setHoverStar] = useState(0);
+  const [likes, setLikes] = useState(()=>LS.get("sahne_likes", {}));
+  const [comments, setComments] = useState(()=>LS.get("sahne_comments", {
+    b1:[{userId:4,text:"Christopher Nolan'ın en iyi filmi 🚀",likes:34,time:"2s"},{userId:1,text:"O son sahne kafamda dönüyor...",likes:18,time:"5s"}],
+    b2:[{userId:1,text:"Sinema tarihinin zirvesi.",likes:89,time:"1g"},{userId:3,text:"Al Pacino bu filmde inanılmaz",likes:42,time:"2g"}],
+    b5:[{userId:2,text:"Heath Ledger'ın Joker'i mükemmel 🃏",likes:156,time:"3s"}],
+    s1:[{userId:4,text:"Hayatımın dizisi. Bir daha izliyorum.",likes:201,time:"1g"}],
+  }));
+  const [commentText, setCommentText] = useState("");
+  const [following, setFollowing] = useState(()=>LS.get("sahne_following", [1,4]));
+  const [messages, setMessages] = useState(()=>LS.get("sahne_msgs", {
+    1:[{from:1,text:"Fight Club'ı izledin mi? 🔥",time:"10:30"}],
+    2:[{from:2,text:"Interstellar harika değil mi?",time:"Dün"}],
+  }));
+  const [activeChat, setActiveChat] = useState(null);
+  const [msgText, setMsgText] = useState("");
+  const [profileUser, setProfileUser] = useState(null);
+  const [activeList, setActiveList] = useState("watched");
+  const [addModal, setAddModal] = useState(false);
+  const [shareModal, setShareModal] = useState(null);
+  const [storyModal, setStoryModal] = useState(null);
+  const [addStoryModal, setAddStoryModal] = useState(false);
+  const [stories, setStories] = useState(()=>LS.get("sahne_stories", DEMO_STORIES));
+  const [newItem, setNewItem] = useState({title:"",year:"",genre:"",overview:"",poster:"",trailer:"",type:"film",seasons:[{s:1,ep:0,rating:""}]});
+  const [discoverTab, setDiscoverTab] = useState("film"); // film | dizi
+  const [profileEditModal, setProfileEditModal] = useState(false);
+  const [editBio, setEditBio] = useState("");
+  const [statsModal, setStatsModal] = useState(false);
+  const [seenStories, setSeenStories] = useState(()=>LS.get("sahne_seen_stories",[]));
+
+  // Auth forms
+  const [loginForm, setLoginForm] = useState({email:"",pass:""});
+  const [regForm, setRegForm] = useState({name:"",surname:"",email:"",pass:"",age:""});
+  const [authErr, setAuthErr] = useState("");
+
+  // Style injection
+  useEffect(()=>{
+    const el=document.createElement("style");
+    el.id="sahne-css";
+    el.textContent=globalCSS(dm);
+    document.head.appendChild(el);
+    return()=>el.remove();
+  },[dm]);
+
+  // Persist to localStorage
+  useEffect(()=>LS.set("sahne_dm",dm),[dm]);
+  useEffect(()=>LS.set("sahne_lists",userMovies),[userMovies]);
+  useEffect(()=>LS.set("sahne_likes",likes),[likes]);
+  useEffect(()=>LS.set("sahne_comments",comments),[comments]);
+  useEffect(()=>LS.set("sahne_following",following),[following]);
+  useEffect(()=>LS.set("sahne_msgs",messages),[messages]);
+  useEffect(()=>LS.set("sahne_custom",customContent),[customContent]);
+  useEffect(()=>LS.set("sahne_stories",stories),[stories]);
+  useEffect(()=>LS.set("sahne_seen_stories",seenStories),[seenStories]);
+
+  // Init feed
+  useEffect(()=>{
+    fetchTMDB("popular",1,false);
+    const shuffled=[...BUILTIN].sort(()=>Math.random()-0.5);
+    setFeedContent([...shuffled,...customContent]);
+  },[]);
+
+  const fetchTMDB = async(cat,pg,append=false)=>{
+    setLoading(true);
+    try{
+      const eps={popular:"/movie/popular",top_rated:"/movie/top_rated",on_air:"/tv/on_the_air",top_tv:"/tv/top_rated"};
+      const r=await fetch(`${BASE}${eps[cat]}?api_key=${API_KEY}&language=tr-TR&page=${pg}`);
+      const d=await r.json();
+      if(!d.results){setLoading(false);return;}
+      const mapped=d.results.map(m=>({...m,_tmdb:true,type:cat.includes("tv")||cat==="on_air"?"dizi":"film"}));
+      setDiscoverMovies(prev=>append?[...prev,...mapped]:mapped);
+      setHasMore(pg<Math.min(d.total_pages||1,8));
+    }catch{}
+    setLoading(false);
+  };
+
+  const doSearch=async(q)=>{
+    if(!q){setSearchRes([]);return;}
+    setLoading(true);
+    try{
+      const [mr,tr]=await Promise.all([
+        fetch(`${BASE}/search/movie?api_key=${API_KEY}&language=tr-TR&query=${encodeURIComponent(q)}`).then(r=>r.json()),
+        fetch(`${BASE}/search/tv?api_key=${API_KEY}&language=tr-TR&query=${encodeURIComponent(q)}`).then(r=>r.json()),
+      ]);
+      const movies=(mr.results||[]).map(m=>({...m,_tmdb:true,type:"film"}));
+      const tvs=(tr.results||[]).map(m=>({...m,_tmdb:true,type:"dizi",title:m.name||m.title,release_date:m.first_air_date}));
+      setSearchRes([...movies,...tvs].sort((a,b)=>(b.popularity||0)-(a.popularity||0)));
+    }catch{}
+    setLoading(false);
+  };
+
+  // ─── Auth ───
+  const doRegister = () => {
+    if(!regForm.name||!regForm.email||!regForm.pass) return setAuthErr("Ad, e-posta ve şifre zorunlu");
+    if(users.find(u=>u.email===regForm.email)) return setAuthErr("Bu e-posta zaten kayıtlı");
+    const u = { id:`u_${Date.now()}`, name:regForm.name, surname:regForm.surname, email:regForm.email, pass:regForm.pass, age:regForm.age, username:(regForm.name+regForm.surname).toLowerCase().replace(/\s/g,"").slice(0,16), bio:"", avatar:"🎬", color:"#92400e", followers:0, following:0 };
+    const newUsers=[...users,u];
+    setUsers(newUsers);
+    LS.set("sahne_users",newUsers);
+    setCurrentUser(u);
+    LS.set("sahne_user",u);
+    setAuthErr("");
+  };
+
+  const doLogin = () => {
+    // Check demo shortcut
+    if(loginForm.email==="demo"&&loginForm.pass==="demo"){
+      const demo={ id:"demo", name:"Demo Kullanıcı", username:"demo", bio:"Sahne demo hesabı", avatar:"🎬", color:"#92400e", followers:12, following:4, email:"demo" };
+      setCurrentUser(demo); LS.set("sahne_user",demo); return;
+    }
+    const u=users.find(x=>x.email===loginForm.email&&x.pass===loginForm.pass);
+    if(!u) return setAuthErr("E-posta veya şifre hatalı");
+    setCurrentUser(u); LS.set("sahne_user",u); setAuthErr("");
+  };
+
+  const doLogout=()=>{ setCurrentUser(null); LS.set("sahne_user",null); setPage("feed"); };
+
+  const updateProfile=(bio)=>{
+    const updated={...currentUser,bio};
+    setCurrentUser(updated); LS.set("sahne_user",updated);
+    const newUsers=users.map(u=>u.id===updated.id?updated:u);
+    setUsers(newUsers); LS.set("sahne_users",newUsers);
+    setProfileEditModal(false);
+  };
+
+  const getUserData=id=>userMovies[id]||{};
+  const toggleList=(item,list)=>{
+    setUserMovies(prev=>{const cur=prev[item.id]||{};return{...prev,[item.id]:{...cur,[list]:!cur[list],_item:item}};});
+  };
+  const toggleLike=id=>setLikes(prev=>({...prev,[id]:!prev[id]}));
+
+  const openDetail=async(item)=>{
+    const d=getUserData(item.id);
+    setNoteText(d.note||"");setStarRating(d.rating||0);setHoverStar(0);
+    setSelItem(item);setItemDetail(null);setCommentText("");
+    if(item._tmdb){
+      const ep=item.type==="dizi"?`/tv/${item.id}`:`/movie/${item.id}`;
+      try{const r=await fetch(`${BASE}${ep}?api_key=${API_KEY}&language=tr-TR`);setItemDetail(await r.json());}catch{}
+    }
+  };
+
+  const saveNote=()=>{
+    setUserMovies(prev=>{const cur=prev[selItem.id]||{};return{...prev,[selItem.id]:{...cur,note:noteText,rating:starRating,_item:selItem}};});
+    setSelItem(null);
+  };
+
+  const addComment=()=>{
+    if(!commentText.trim())return;
+    const me=currentUser||{id:"demo",username:"sen",avatar:"🎬",color:"#92400e"};
+    setComments(prev=>({...prev,[selItem.id]:[...(prev[selItem.id]||[]),{userId:me.id,username:me.username||me.name,avatar:me.avatar,text:commentText,likes:0,time:"şimdi"}]}));
+    setCommentText("");
+  };
+
+  const sendMsg=()=>{
+    if(!msgText.trim())return;
+    const now=new Date();
+    const me=currentUser||{id:"demo"};
+    setMessages(prev=>({...prev,[activeChat]:[...(prev[activeChat]||[]),{from:me.id,text:msgText,time:`${now.getHours()}:${String(now.getMinutes()).padStart(2,"0")}`}]}));
+    setMsgText("");
+  };
+
+  const sharePrivately=(item,userId)=>{
+    const me=currentUser||{id:"demo"};
+    const title=item.title||item.name;
+    setMessages(prev=>({...prev,[userId]:[...(prev[userId]||[]),{from:me.id,text:`🎬 "${title}" ${item.type==="dizi"?"dizisini":"filmini"} izledin mi? Sahne'de bak!`,time:"şimdi",isShare:true,shareItem:item}]}));
+    setShareModal(null);
+  };
+
+  const addContent=()=>{
+    if(!newItem.title)return;
+    const id=`c_${Date.now()}`;
+    const m={...newItem,id,addedBy:"me",_custom:true};
+    setCustomContent(prev=>[m,...prev]);
+    setFeedContent(prev=>[m,...prev]);
+    setNewItem({title:"",year:"",genre:"",overview:"",poster:"",trailer:"",type:"film",seasons:[{s:1,ep:0,rating:""}]});
+    setAddModal(false);
+  };
+
+  const addStory=()=>{
+    const me=currentUser||{id:"demo",username:"sen"};
+    const s={userId:me.id,username:me.username||me.name,avatar:me.avatar||"🎬",title:newItem.storyText||"Yeni paylaşım",movie:newItem.storyMovie||"",time:"şimdi",seen:false};
+    setStories(prev=>[s,...prev]);
+    setNewItem(p=>({...p,storyText:"",storyMovie:""}));
+    setAddStoryModal(false);
+  };
+
+  const getListItems=list=>Object.values(userMovies).filter(u=>u[list]&&u._item).map(u=>u._item);
+  const ME=currentUser||{id:"demo",name:"Misafir",username:"misafir",bio:"",avatar:"🎬",color:"#92400e",followers:0,following:0};
+  const allUsers=[...DEMO_USERS,...users];
+
+  // ─── Stats ───
+  const watched=getListItems("watched");
+  const totalMins=watched.reduce((acc,m)=>{
+    if(m._tmdb) return acc+(m.runtime||90);
+    if(m.type==="dizi") return acc+((m.seasons||[]).reduce((a,s)=>a+(s.ep||0),0)*45);
+    return acc+90;
+  },0);
+  const genreCounts={};
+  watched.forEach(m=>{
+    const g=m.genre||(m.genre_ids?GENRE_MAP[m.genre_ids[0]]:"Diğer")||"Diğer";
+    genreCounts[g]=(genreCounts[g]||0)+1;
+  });
+  const topGenre=Object.entries(genreCounts).sort((a,b)=>b[1]-a[1])[0];
+
+  const unread=Object.keys(messages).filter(uid=>{const m=messages[uid];return m?.length>0&&m[m.length-1].from!==ME.id;}).length;
+  const discoverAll=search?searchRes:[...discoverMovies,...BUILTIN.filter(b=>!discoverMovies.find(d=>d.id===b.id))];
+  const discoverFiltered=discoverAll.filter(m=>m.type===discoverTab||!m.type);
+  const feedAll=[...feedContent,...customContent.filter(c=>!feedContent.find(f=>f.id===c.id))];
+
+  // ─── NOT LOGGED IN ───
+  if(!currentUser){
+    return (
+      <div style={{background:t.bg,minHeight:"100vh",maxWidth:430,margin:"0 auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Outfit',sans-serif",color:t.text}}>
+        <FilmStrip t={t} dm={dm}/>
+        <div style={{marginTop:20,textAlign:"center",marginBottom:32}}>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:48,letterSpacing:4,color:t.text,lineHeight:1}}>SAHNE</div>
+          <div style={{fontSize:12,color:t.faint,letterSpacing:3,marginTop:2}}>SİNEMASEVERLERİN BULUŞMA YERİ</div>
+        </div>
+
+        <div style={{width:"100%",maxWidth:360}}>
+          {/* Tabs */}
+          <div style={{display:"flex",background:t.card,borderRadius:12,border:`1.5px solid ${t.border}`,overflow:"hidden",marginBottom:20}}>
+            {["login","register"].map(p=>(
+              <button key={p} onClick={()=>{setAuthPage(p);setAuthErr("");}} style={{flex:1,padding:"11px",background:authPage===p?"#1a1a1a":t.card,color:authPage===p?"#fff":t.sub,fontWeight:700,fontSize:13,border:"none",letterSpacing:0.5}}>
+                {p==="login"?"GİRİŞ YAP":"KAYIT OL"}
+              </button>
+            ))}
+          </div>
+
+          {authPage==="login"?(
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {[{k:"email",l:"E-POSTA",t:"email",ph:"ornek@mail.com"},{k:"pass",l:"ŞİFRE",t:"password",ph:"••••••••"}].map(f=>(
+                <div key={f.k}>
+                  <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:5}}>{f.l}</div>
+                  <input type={f.t} value={loginForm[f.k]} onChange={e=>setLoginForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph} onKeyDown={e=>e.key==="Enter"&&doLogin()}
+                    style={{width:"100%",padding:"12px 14px",background:t.input,border:`1.5px solid ${t.inputBorder}`,borderRadius:10,fontSize:14,outline:"none",color:t.text,boxSizing:"border-box"}}/>
+                </div>
+              ))}
+              {authErr&&<div style={{fontSize:12,color:"#dc2626",fontWeight:600}}>{authErr}</div>}
+              <button className="press" onClick={doLogin} style={{padding:"13px",background:"#1a1a1a",border:"none",borderRadius:10,color:"#fff",fontWeight:700,fontSize:14,letterSpacing:1,boxShadow:"3px 3px 0 #555",marginTop:4}}>GİRİŞ YAP</button>
+              <button className="press" onClick={()=>{setCurrentUser({id:"demo",name:"Demo",username:"demo",bio:"",avatar:"🎬",color:"#92400e",followers:0,following:0});}} style={{padding:"11px",background:t.card,border:`1.5px solid ${t.border}`,borderRadius:10,color:t.sub,fontWeight:600,fontSize:13}}>Demo olarak dene</button>
+            </div>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {[
+                {k:"name",l:"AD *",t:"text",ph:"Adın"},
+                {k:"surname",l:"SOYAD",t:"text",ph:"Soyadın"},
+                {k:"email",l:"E-POSTA *",t:"email",ph:"ornek@mail.com"},
+                {k:"pass",l:"ŞİFRE *",t:"password",ph:"En az 6 karakter"},
+                {k:"age",l:"YAŞ",t:"number",ph:"25"},
+              ].map(f=>(
+                <div key={f.k}>
+                  <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:5}}>{f.l}</div>
+                  <input type={f.t} value={regForm[f.k]} onChange={e=>setRegForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
+                    style={{width:"100%",padding:"12px 14px",background:t.input,border:`1.5px solid ${t.inputBorder}`,borderRadius:10,fontSize:14,outline:"none",color:t.text,boxSizing:"border-box"}}/>
+                </div>
+              ))}
+              {authErr&&<div style={{fontSize:12,color:"#dc2626",fontWeight:600}}>{authErr}</div>}
+              <button className="press" onClick={doRegister} style={{padding:"13px",background:"#1a1a1a",border:"none",borderRadius:10,color:"#fff",fontWeight:700,fontSize:14,letterSpacing:1,boxShadow:"3px 3px 0 #555",marginTop:4}}>KAYIT OL</button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── MAIN APP ───
+  return (
+    <div style={{background:t.bg,minHeight:"100vh",maxWidth:430,margin:"0 auto",position:"relative",color:t.text}}>
+      <FilmStrip t={t} dm={dm}/>
+
+      {/* Header */}
+      {(page==="feed"||page==="discover"||page==="profile")&&(
+        <div style={{background:t.bg,position:"sticky",top:8,zIndex:20,borderBottom:`2px solid ${t.border}`,padding:"10px 14px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:3,color:t.text,lineHeight:1}}>SAHNE</div>
+            <div style={{fontSize:8,letterSpacing:3,color:t.faint,fontWeight:600,marginTop:-1}}>SİNEMASEVERLERİN BULUŞMA YERİ</div>
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            {/* Dark mode toggle */}
+            <button className="press" onClick={()=>setDm(p=>!p)} style={{width:32,height:32,borderRadius:8,background:t.card,border:`1.5px solid ${t.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>
+              {dm?"☀️":"🌙"}
+            </button>
+            <button className="press" onClick={()=>setAddModal(true)} style={{width:32,height:32,borderRadius:8,background:t.text,border:"none",color:t.bg,fontSize:20,fontWeight:300,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+            <button className="press" onClick={()=>setPage("messages")} style={{width:32,height:32,background:"none",border:"none",position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={t.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              {unread>0&&<div style={{position:"absolute",top:3,right:3,width:7,height:7,background:"#dc2626",borderRadius:"50%",border:`1.5px solid ${t.bg}`}}/>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div style={{paddingBottom:84,paddingTop:0}}>
+
+        {/* ═══ FEED ═══ */}
+        {page==="feed"&&(
+          <div>
+            {/* Stories */}
+            <div style={{padding:"12px 14px 10px",borderBottom:`1px solid ${t.border}`}}>
+              <div style={{display:"flex",gap:12,overflowX:"auto",scrollbarWidth:"none"}}>
+                {/* Add story */}
+                <div onClick={()=>setAddStoryModal(true)} className="press" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,flexShrink:0}}>
+                  <div style={{width:56,height:56,borderRadius:16,background:t.card,border:`2px dashed ${t.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>+</div>
+                  <span style={{fontSize:10,color:t.faint,fontWeight:600}}>Hikaye</span>
+                </div>
+                {/* Stories */}
+                {stories.map((s,i)=>{
+                  const u=allUsers.find(x=>x.id===s.userId)||{avatar:"🎬",username:s.username||"kullanici"};
+                  const seen=seenStories.includes(i);
+                  return(
+                    <div key={i} onClick={()=>{setStoryModal({...s,u,idx:i});setSeenStories(p=>p.includes(i)?p:[...p,i]);}} className="press" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,flexShrink:0}}>
+                      <div style={{width:56,height:56,borderRadius:16,background:u.color||"#1a1a1a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,border:`3px solid ${seen?"#555":"#f97316"}`,boxShadow:seen?"none":"0 0 0 1px #f97316"}} className={seen?"":"story-ring"}>
+                        {u.avatar}
+                      </div>
+                      <span style={{fontSize:10,color:t.sub,fontWeight:600,maxWidth:56,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.username||s.username}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Feed cards */}
+            {feedAll.length===0?(
+              <div style={{padding:50,textAlign:"center"}}><div style={{width:26,height:26,border:`2.5px solid ${t.border}`,borderTopColor:t.text,borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 12px"}}/><div style={{fontSize:13,color:t.faint}}>Yükleniyor...</div></div>
+            ):feedAll.map((item,i)=>(
+              <FeedCard key={item.id} item={item} idx={i} t={t} dm={dm}
+                liked={!!likes[item.id]} onLike={()=>toggleLike(item.id)}
+                onOpen={()=>openDetail(item)}
+                saved={!!getUserData(item.id).watchlist}
+                onSave={()=>toggleList(item,"watchlist")}
+                onShare={()=>setShareModal(item)}
+                comments={comments[item.id]||[]}
+                allUsers={allUsers}
+                onUserClick={u=>{setProfileUser(u);setPage("userprofile");}}
+                getUserData={getUserData} LISTS={LISTS} pct={pct} sc={sc}
+                IMG={IMG} IMG_BIG={IMG_BIG}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* ═══ DISCOVER ═══ */}
+        {page==="discover"&&(
+          <div>
+            <div style={{padding:"10px 14px 8px",position:"sticky",top:58,zIndex:15,background:t.bg,borderBottom:`1px solid ${t.border}`}}>
+              <div style={{position:"relative",marginBottom:10}}>
+                <svg style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={t.faint} strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input value={search} onChange={e=>{setSearch(e.target.value);doSearch(e.target.value);}} placeholder="Film veya dizi ara..."
+                  style={{width:"100%",padding:"10px 32px 10px 34px",background:t.input,border:`1.5px solid ${t.inputBorder}`,borderRadius:24,fontSize:14,outline:"none",color:t.text,boxSizing:"border-box"}}/>
+                {search&&<button onClick={()=>{setSearch("");setSearchRes([]);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:16,color:t.faint,cursor:"pointer"}}>×</button>}
+              </div>
+              {/* Film/Dizi toggle */}
+              {!search&&(
+                <div style={{display:"flex",background:t.card,borderRadius:10,border:`1.5px solid ${t.border}`,overflow:"hidden"}}>
+                  {[{id:"film",l:"🎬 Film"},{id:"dizi",l:"📺 Dizi"}].map(tab=>(
+                    <button key={tab.id} onClick={()=>{setDiscoverTab(tab.id);fetchTMDB(tab.id==="film"?"popular":"on_air",1,false);}} style={{flex:1,padding:"9px",background:discoverTab===tab.id?t.text:t.card,color:discoverTab===tab.id?t.bg:t.sub,fontWeight:700,fontSize:13,border:"none",letterSpacing:0.3}}>
+                      {tab.l}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {loading&&discoverFiltered.length===0?(
+              <div style={{padding:50,textAlign:"center"}}><div style={{width:24,height:24,border:`2.5px solid ${t.border}`,borderTopColor:t.text,borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/></div>
+            ):(
+              <MasonryGrid movies={discoverFiltered} onOpen={openDetail} getUserData={getUserData} pct={pct} sc={sc} dm={dm} comments={comments} IMG={IMG} GENRE_MAP={GENRE_MAP} t={t}/>
+            )}
+            {!search&&hasMore&&!loading&&(
+              <button className="press" onClick={()=>{const n=pgNum+1;setPgNum(n);fetchTMDB(discoverTab==="film"?"popular":"on_air",n,true);}} style={{width:"100%",padding:14,background:"none",border:"none",color:t.text,fontWeight:700,fontSize:12,borderTop:`1.5px solid ${t.border}`,letterSpacing:1.5}}>DAHA FAZLA ↓</button>
+            )}
+          </div>
+        )}
+
+        {/* ═══ PROFILE ═══ */}
+        {page==="profile"&&(
+          <ProfilePage user={ME} isMe={true} t={t} dm={dm}
+            getListItems={getListItems} activeList={activeList} setActiveList={setActiveList}
+            onItemClick={openDetail} LISTS={LISTS} IMG={IMG}
+            onAddItem={()=>setAddModal(true)}
+            onEditBio={()=>{setEditBio(ME.bio||"");setProfileEditModal(true);}}
+            onStats={()=>setStatsModal(true)}
+            onLogout={doLogout}
+            ListIcon={ListIcon}
+          />
+        )}
+
+        {/* ═══ USER PROFILE ═══ */}
+        {page==="userprofile"&&profileUser&&(
+          <div className="fade-up">
+            <div style={{padding:"10px 14px",display:"flex",alignItems:"center",gap:12,borderBottom:`2px solid ${t.border}`,position:"sticky",top:8,background:t.bg,zIndex:10}}>
+              <button className="press" onClick={()=>setPage("feed")} style={{background:"none",border:"none",padding:0}}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={t.text} strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:2,color:t.text}}>{(profileUser.username||profileUser.name||"").toUpperCase()}</div>
+            </div>
+            <div style={{padding:"18px 16px"}}>
+              <div style={{display:"flex",gap:14,marginBottom:16}}>
+                <div style={{width:72,height:72,borderRadius:16,background:profileUser.color||"#555",display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,flexShrink:0,border:`2.5px solid ${t.text}`,boxShadow:`3px 3px 0 ${t.border}`}}>{profileUser.avatar||"🎬"}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:800,fontSize:16,color:t.text}}>{profileUser.name}</div>
+                  <div style={{fontSize:12,color:t.faint,marginBottom:6}}>@{profileUser.username||profileUser.name}</div>
+                  {profileUser.bio&&<div style={{fontSize:13,color:t.sub,lineHeight:1.5}}>{profileUser.bio}</div>}
+                </div>
+              </div>
+              <div style={{display:"flex",background:t.card,borderRadius:12,border:`1.5px solid ${t.border}`,marginBottom:12,overflow:"hidden"}}>
+                {[[profileUser.followers,"Takipçi"],[profileUser.following,"Takip"]].map(([v,l],i)=>(
+                  <div key={i} style={{flex:1,textAlign:"center",padding:"10px 8px",borderRight:i<1?`1.5px solid ${t.border}`:"none"}}>
+                    <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,color:t.text}}>{v||0}</div>
+                    <div style={{fontSize:10,color:t.faint,fontWeight:600}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button className="press" onClick={()=>setFollowing(prev=>prev.includes(profileUser.id)?prev.filter(x=>x!==profileUser.id):[...prev,profileUser.id])}
+                  style={{flex:1,padding:"10px",borderRadius:10,border:`2px solid ${t.text}`,background:following.includes(profileUser.id)?t.card:t.text,color:following.includes(profileUser.id)?t.text:t.bg,fontWeight:700,fontSize:13}}>
+                  {following.includes(profileUser.id)?"Takip Ediliyor ✓":"Takip Et"}
+                </button>
+                <button className="press" onClick={()=>{setActiveChat(profileUser.id);setPage("messages");}}
+                  style={{flex:1,padding:"10px",borderRadius:10,border:`2px solid ${t.border}`,background:t.card,fontWeight:700,fontSize:13,color:t.text}}>
+                  Mesaj Gönder
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ MESSAGES ═══ */}
+        {page==="messages"&&(
+          <div className="fade-up">
+            <div style={{padding:"10px 14px",display:"flex",alignItems:"center",gap:12,borderBottom:`2px solid ${t.border}`,position:"sticky",top:8,background:t.bg,zIndex:10}}>
+              <button className="press" onClick={()=>setPage("feed")} style={{background:"none",border:"none",padding:0}}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={t.text} strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:2,color:t.text}}>MESAJLAR</div>
+            </div>
+            {activeChat?(
+              <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 130px)"}}>
+                <div style={{padding:"10px 14px",borderBottom:`1px solid ${t.border}`,display:"flex",alignItems:"center",gap:10,background:t.card}}>
+                  <button className="press" onClick={()=>setActiveChat(null)} style={{background:"none",border:"none",padding:0,marginRight:2}}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={t.text} strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  </button>
+                  {(()=>{const u=allUsers.find(x=>x.id===activeChat)||{avatar:"🎬",name:"Kullanıcı",color:"#555"};return(<>
+                    <div style={{width:34,height:34,borderRadius:9,background:u.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,border:`2px solid ${t.text}`}}>{u.avatar}</div>
+                    <div><div style={{fontWeight:700,fontSize:14,color:t.text}}>{u.name}</div><div style={{fontSize:10,color:"#22c55e",fontWeight:600}}>● çevrimiçi</div></div>
+                  </>))()}
+                </div>
+                <div style={{flex:1,overflowY:"auto",padding:14,display:"flex",flexDirection:"column",gap:8,background:t.bg}}>
+                  {(messages[activeChat]||[]).map((m,i)=>{
+                    const isMe=m.from===ME.id||m.from==="demo";
+                    return(
+                      <div key={i} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start"}}>
+                        {m.isShare?(
+                          <div onClick={()=>m.shareItem&&openDetail(m.shareItem)} style={{maxWidth:"78%",background:t.card,borderRadius:14,border:`1.5px solid ${t.border}`,overflow:"hidden",cursor:"pointer"}}>
+                            {m.shareItem?.poster&&<img src={m.shareItem.poster} style={{width:"100%",height:90,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>}
+                            <div style={{padding:"8px 12px"}}>
+                              <div style={{fontSize:12,color:t.faint,fontWeight:600,marginBottom:2}}>📽️ Film Paylaşımı</div>
+                              <div style={{fontSize:13,fontWeight:700,color:t.text}}>{m.text}</div>
+                            </div>
+                          </div>
+                        ):(
+                          <div style={{maxWidth:"72%",padding:"10px 14px",borderRadius:isMe?"14px 14px 2px 14px":"14px 14px 14px 2px",background:isMe?t.text:t.card,color:isMe?t.bg:t.text,fontSize:14,border:`1.5px solid ${t.border}`}}>
+                            <div>{m.text}</div>
+                            <div style={{fontSize:10,opacity:0.45,marginTop:3,textAlign:isMe?"right":"left"}}>{m.time}</div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{padding:"10px 14px",borderTop:`1px solid ${t.border}`,display:"flex",gap:8,alignItems:"center",background:t.card}}>
+                  <input value={msgText} onChange={e=>setMsgText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} placeholder="Mesaj yaz..."
+                    style={{flex:1,padding:"10px 14px",background:t.input,border:`1.5px solid ${t.inputBorder}`,borderRadius:22,fontSize:14,outline:"none",color:t.text}}/>
+                  <button className="press" onClick={sendMsg} style={{width:38,height:38,borderRadius:9,background:t.text,border:"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={t.bg} strokeWidth="2.5" strokeLinecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  </button>
+                </div>
+              </div>
+            ):(
+              <div>
+                {allUsers.filter(u=>u.id!==ME.id).map(u=>(
+                  <div key={u.id} onClick={()=>setActiveChat(u.id)} className="press" style={{display:"flex",alignItems:"center",gap:12,padding:14,borderBottom:`1px solid ${t.border}`,background:t.card,marginBottom:1}}>
+                    <div style={{width:48,height:48,borderRadius:13,background:u.color||"#555",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,border:`2px solid ${t.border}`}}>{u.avatar||"🎬"}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:14,color:t.text}}>{u.name}</div>
+                      <div style={{fontSize:12,color:t.faint,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:2}}>{messages[u.id]?.slice(-1)[0]?.text||"Mesaj başlat"}</div>
+                    </div>
+                    <div style={{fontSize:11,color:t.faint,flexShrink:0}}>{messages[u.id]?.slice(-1)[0]?.time||""}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ═══ BOTTOM NAV ═══ */}
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,zIndex:20}}>
+        <div style={{background:t.strip,height:7,display:"flex",gap:3,padding:"0 8px",alignItems:"center",borderTop:`1px solid ${t.stripBorder}`}}>
+          {Array.from({length:14}).map((_,i)=><div key={i} style={{width:18,height:4,background:t.stripHole,borderRadius:1,border:`1px solid ${t.stripBorder}`,flexShrink:0}}/>)}
+        </div>
+        <div style={{background:t.navBg,display:"flex",padding:"8px 0 20px",borderTop:`1px solid ${t.border}`}}>
+          {[
+            {id:"feed",    l:"AKIŞ",   ic:(a)=><svg width="23" height="23" viewBox="0 0 24 24" fill={a?t.text:"none"} stroke={a?t.text:t.faint} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>},
+            {id:"discover",l:"KEŞİF", ic:(a)=><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke={a?t.text:t.faint} strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>},
+            {id:"messages",l:"MESAJ", ic:(a)=><div style={{position:"relative",display:"inline-flex"}}><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke={a?t.text:t.faint} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>{unread>0&&<div style={{position:"absolute",top:-2,right:-2,width:7,height:7,background:"#dc2626",borderRadius:"50%",border:`1.5px solid ${t.bg}`}}/>}</div>},
+            {id:"profile", l:"PROFİL",ic:(a)=><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke={a?t.text:t.faint} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>},
+          ].map(n=>(
+            <button key={n.id} className="press" onClick={()=>setPage(n.id)} style={{flex:1,background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+              {n.ic(page===n.id)}
+              <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:10,letterSpacing:1,color:page===n.id?t.text:t.faint}}>{n.l}</span>
+              {page===n.id&&<div style={{width:14,height:2,background:t.text,borderRadius:1}}/>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ═══ DETAIL MODAL ═══ */}
+      {selItem&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:50,display:"flex",alignItems:"flex-end"}} onClick={()=>setSelItem(null)}>
+          <div className="slide-up" onClick={e=>e.stopPropagation()} style={{background:t.bg,borderRadius:"20px 20px 0 0",width:"100%",maxWidth:430,maxHeight:"93vh",overflowY:"auto",margin:"0 auto",border:`2px solid ${t.border}`,borderBottom:"none"}}>
+            <div style={{background:t.strip,height:7,borderRadius:"18px 18px 0 0",display:"flex",gap:3,padding:"0 12px",alignItems:"center",borderBottom:`1px solid ${t.stripBorder}`}}>
+              {Array.from({length:14}).map((_,i)=><div key={i} style={{width:18,height:4,background:t.stripHole,borderRadius:1,border:`1px solid ${t.stripBorder}`}}/>)}
+            </div>
+            {/* Backdrop */}
+            <div style={{position:"relative",height:175,overflow:"hidden",background:t.card}}>
+              {(()=>{const src=selItem._tmdb?(selItem.backdrop_path?`${IMG_BIG}${selItem.backdrop_path}`:selItem.poster_path?`${IMG_BIG}${selItem.poster_path}`:null):(selItem.backdrop||selItem.poster);return src&&<img src={src} style={{width:"100%",height:"100%",objectFit:"cover",filter:"brightness(0.4)"}} onError={e=>e.target.style.display="none"}/>})()}
+              <div style={{position:"absolute",inset:0,background:`linear-gradient(to top,${t.bg} 0%,transparent 55%)`}}/>
+              <button onClick={()=>setSelItem(null)} style={{position:"absolute",top:10,right:10,width:28,height:28,borderRadius:7,background:"rgba(255,255,255,0.9)",border:"none",fontSize:15,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>×</button>
+              {/* Type badge */}
+              <div style={{position:"absolute",top:10,left:10,background:selItem.type==="dizi"?"#7c3aed":"#1a1a1a",borderRadius:6,padding:"3px 9px"}}>
+                <span style={{fontSize:10,fontWeight:700,color:"#fff",letterSpacing:1}}>{selItem.type==="dizi"?"DİZİ":"FİLM"}</span>
+              </div>
+              <div style={{position:"absolute",bottom:10,left:12,display:"flex",gap:10,alignItems:"flex-end"}}>
+                {(selItem._tmdb?selItem.poster_path:selItem.poster)&&(
+                  <img src={selItem._tmdb?`${IMG}${selItem.poster_path}`:selItem.poster} style={{width:50,height:74,objectFit:"cover",borderRadius:8,border:`2px solid ${t.text}`,flexShrink:0,boxShadow:`3px 3px 0 ${t.text}`}} onError={e=>e.target.style.display="none"}/>
+                )}
+                <div>
+                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:1,lineHeight:1.1,color:t.text}}>{selItem.title||selItem.name}</div>
+                  <div style={{fontSize:11,color:t.faint,marginTop:2}}>{selItem.release_date?.slice(0,4)||selItem.year||""}{itemDetail?.runtime?` · ${itemDetail.runtime} dk`:""}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{padding:"12px 16px 36px"}}>
+              {/* Overview FIRST (Twitter-style — above likes) */}
+              {(itemDetail?.overview||selItem.overview)&&(
+                <div style={{fontSize:14,color:t.sub,lineHeight:1.7,marginBottom:14,fontWeight:400}}>{itemDetail?.overview||selItem.overview}</div>
+              )}
+
+              {/* Stats */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+                {[
+                  {l:"TMDB",v:`%${selItem._tmdb?pct(selItem.vote_average):(selItem.recommend||0)}`,c:sc(selItem.vote_average||selItem.rating/10,dm)},
+                  {l:"IMDB",v:`★ ${selItem._tmdb?(selItem.vote_average?.toFixed(1)||"?"):selItem.rating}`,c:dm?"#fbbf24":"#ca8a04"},
+                  {l:"YORUM",v:(comments[selItem.id]||[]).length,c:dm?"#60a5fa":"#2563eb"},
+                ].map((s,i)=>(
+                  <div key={i} style={{background:t.card,borderRadius:10,padding:"9px 6px",textAlign:"center",border:`1.5px solid ${t.border}`}}>
+                    <div style={{fontSize:8,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:2}}>{s.l}</div>
+                    <div style={{fontSize:15,fontWeight:800,color:s.c}}>{s.v}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Seasons (dizi) */}
+              {(selItem.type==="dizi"||(selItem.seasons&&selItem.seasons.length>0))&&(
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:8}}>SEZONLAR</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {(itemDetail?.seasons||selItem.seasons||[]).map((s,i)=>(
+                      <div key={i} style={{background:t.card,border:`1.5px solid ${t.border}`,borderRadius:10,padding:"8px 12px",minWidth:80,textAlign:"center"}}>
+                        <div style={{fontSize:11,fontWeight:700,color:t.text}}>Sezon {s.s||s.season_number||i+1}</div>
+                        <div style={{fontSize:10,color:t.faint}}>{s.ep||s.episode_count||"?"} bölüm</div>
+                        {s.rating&&<div style={{fontSize:11,fontWeight:700,color:dm?"#fbbf24":"#ca8a04",marginTop:2}}>★ {s.rating}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Trailer */}
+              {(selItem.trailer||(itemDetail?.videos?.results?.length>0))&&(
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:8}}>FRAGMAN</div>
+                  <a href={selItem.trailer||(itemDetail?.videos?.results?.[0]?.key?`https://www.youtube.com/watch?v=${itemDetail.videos.results[0].key}`:null)} target="_blank" rel="noopener noreferrer"
+                    style={{display:"flex",alignItems:"center",gap:10,background:t.card,border:`1.5px solid ${t.border}`,borderRadius:12,padding:"12px 14px",textDecoration:"none"}}>
+                    <div style={{width:40,height:40,borderRadius:10,background:"#dc2626",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </div>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:13,color:t.text}}>Fragmanı İzle</div>
+                      <div style={{fontSize:11,color:t.faint}}>YouTube'da aç</div>
+                    </div>
+                  </a>
+                </div>
+              )}
+
+              {/* Genres */}
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
+                {(itemDetail?.genres?itemDetail.genres.map(g=>g.name):selItem.genre_ids?.map(id=>GENRE_MAP[id])||[selItem.genre]).filter(Boolean).map((g,i)=>(
+                  <span key={i} style={{background:t.text,color:t.bg,padding:"3px 11px",borderRadius:20,fontSize:11,fontWeight:600}}>{g}</span>
+                ))}
+              </div>
+
+              {/* Stars */}
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:7}}>PUANIN</div>
+                <div style={{display:"flex",gap:3}}>
+                  {[1,2,3,4,5].map(s=>(
+                    <span key={s} onMouseEnter={()=>setHoverStar(s)} onMouseLeave={()=>setHoverStar(0)} onClick={()=>setStarRating(s===starRating?0:s)}
+                      style={{fontSize:34,cursor:"pointer",color:s<=(hoverStar||starRating)?(dm?"#fbbf24":"#ca8a04"):t.border,transition:"color 0.1s",lineHeight:1}}>★</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Note */}
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:7}}>NOTUN</div>
+                <textarea value={noteText} onChange={e=>setNoteText(e.target.value)} placeholder="Bu hakkında ne düşünüyorsun?"
+                  style={{width:"100%",padding:"11px 14px",background:t.input,border:`1.5px solid ${t.inputBorder}`,borderRadius:10,fontSize:14,resize:"none",outline:"none",minHeight:75,boxSizing:"border-box",lineHeight:1.6,color:t.text}}/>
+              </div>
+
+              {/* List buttons */}
+              <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:8}}>LİSTEYE EKLE</div>
+              <div style={{display:"flex",gap:8,marginBottom:10,justifyContent:"space-between"}}>
+                {Object.entries(LISTS).map(([k,v])=>{
+                  const active=getUserData(selItem.id)[k];
+                  return(
+                    <button key={k} className="press" onClick={()=>toggleList(selItem,k)} title={v.label}
+                      style={{flex:1,aspectRatio:"1",borderRadius:11,border:`1.5px solid ${active?t.text:t.border}`,background:active?t.text:t.card,display:"flex",alignItems:"center",justifyContent:"center",padding:7}}>
+                      <div style={{filter:active?(dm?"none":"invert(1)"):"none"}}>
+                        <ListIcon type={k} active={active} size={19} color={active?(dm?t.bg:t.bg):t.text}/>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:14}}>
+                {Object.entries(LISTS).map(([k,v])=>getUserData(selItem.id)[k]?<span key={k} style={{fontSize:10,fontWeight:600,color:t.bg,background:t.text,padding:"2px 9px",borderRadius:20}}>{v.label}</span>:null)}
+              </div>
+
+              {/* Share privately */}
+              <button className="press" onClick={()=>setShareModal(selItem)} style={{width:"100%",padding:"10px",borderRadius:10,border:`1.5px solid ${t.border}`,background:t.card,color:t.text,fontWeight:700,fontSize:13,marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={t.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Arkadaşına Özel Paylaş
+              </button>
+
+              {/* Comments */}
+              <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:8}}>YORUMLAR ({(comments[selItem.id]||[]).length})</div>
+              {(comments[selItem.id]||[]).map((c,i)=>{
+                const u=allUsers.find(x=>x.id===c.userId)||{avatar:"🎬",username:c.username||"kullanici",color:"#555"};
+                return(
+                  <div key={i} style={{display:"flex",gap:9,marginBottom:10}}>
+                    <div style={{width:30,height:30,borderRadius:8,background:u.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,border:`1.5px solid ${t.border}`}}>{u.avatar}</div>
+                    <div style={{flex:1,background:t.card,borderRadius:"4px 12px 12px 12px",padding:"7px 11px",border:`1.5px solid ${t.border}`}}>
+                      <div style={{fontWeight:700,fontSize:11,marginBottom:2,color:t.text}}>{u.username||c.username}</div>
+                      <div style={{fontSize:13,color:t.sub,lineHeight:1.5}}>{c.text}</div>
+                      <div style={{fontSize:10,color:t.faint,marginTop:3}}>♥ {c.likes} · {c.time}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:16}}>
+                <div style={{width:30,height:30,borderRadius:8,background:ME.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,border:`1.5px solid ${t.border}`}}>{ME.avatar}</div>
+                <input value={commentText} onChange={e=>setCommentText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addComment()} placeholder="Yorum yaz..."
+                  style={{flex:1,padding:"9px 13px",background:t.input,border:`1.5px solid ${t.inputBorder}`,borderRadius:22,fontSize:14,outline:"none",color:t.text}}/>
+                <button className="press" onClick={addComment} style={{background:t.text,border:"none",color:t.bg,padding:"8px 13px",borderRadius:9,fontWeight:700,fontSize:12}}>Gönder</button>
+              </div>
+
+              <button className="press" onClick={saveNote} style={{width:"100%",padding:14,background:t.text,border:"none",borderRadius:12,fontSize:14,fontWeight:700,color:t.bg,boxShadow:`3px 3px 0 ${t.faint}`,letterSpacing:1}}>
+                ✓ KAYDET
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ ADD CONTENT MODAL ═══ */}
+      {addModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:60,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setAddModal(false)}>
+          <div className="slide-up" onClick={e=>e.stopPropagation()} style={{background:t.bg,borderRadius:"20px 20px 0 0",width:"100%",maxWidth:430,maxHeight:"88vh",overflowY:"auto",border:`2px solid ${t.border}`,borderBottom:"none"}}>
+            <div style={{background:t.strip,height:7,borderRadius:"18px 18px 0 0",display:"flex",gap:3,padding:"0 12px",alignItems:"center",borderBottom:`1px solid ${t.stripBorder}`}}>
+              {Array.from({length:14}).map((_,i)=><div key={i} style={{width:18,height:4,background:t.stripHole,borderRadius:1}}/>)}
+            </div>
+            <div style={{padding:"16px 18px 36px"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:2,color:t.text}}>İÇERİK EKLE</div>
+                <button className="press" onClick={()=>setAddModal(false)} style={{background:"none",border:"none",fontSize:22,fontWeight:700,color:t.text,cursor:"pointer"}}>×</button>
+              </div>
+              {/* Film / Dizi toggle */}
+              <div style={{display:"flex",background:t.card,borderRadius:10,border:`1.5px solid ${t.border}`,overflow:"hidden",marginBottom:14}}>
+                {[{v:"film",l:"🎬 Film"},{v:"dizi",l:"📺 Dizi"}].map(opt=>(
+                  <button key={opt.v} onClick={()=>setNewItem(p=>({...p,type:opt.v}))} style={{flex:1,padding:"10px",background:newItem.type===opt.v?t.text:t.card,color:newItem.type===opt.v?t.bg:t.sub,fontWeight:700,fontSize:13,border:"none"}}>
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+              {[{k:"title",l:"ADI *",ph:"Örn: Dune"},{k:"year",l:"YIL",ph:"2024"},{k:"genre",l:"TÜR",ph:"Bilim Kurgu"},{k:"poster",l:"POSTER URL",ph:"https://..."},{k:"trailer",l:"FRAGMAN URL (YouTube)",ph:"https://youtube.com/..."}].map(f=>(
+                <div key={f.k} style={{marginBottom:10}}>
+                  <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:4}}>{f.l}</div>
+                  <input value={newItem[f.k]} onChange={e=>setNewItem(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
+                    style={{width:"100%",padding:"10px 13px",background:t.input,border:`1.5px solid ${t.inputBorder}`,borderRadius:9,fontSize:14,outline:"none",color:t.text,boxSizing:"border-box"}}/>
+                </div>
+              ))}
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:4}}>KONU</div>
+                <textarea value={newItem.overview} onChange={e=>setNewItem(p=>({...p,overview:e.target.value}))} placeholder="Özet..."
+                  style={{width:"100%",padding:"10px 13px",background:t.input,border:`1.5px solid ${t.inputBorder}`,borderRadius:9,fontSize:14,outline:"none",resize:"none",minHeight:70,boxSizing:"border-box",color:t.text}}/>
+              </div>
+              {/* Seasons (for dizi) */}
+              {newItem.type==="dizi"&&(
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:8}}>SEZONLAR</div>
+                  {newItem.seasons.map((s,i)=>(
+                    <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
+                      <div style={{fontSize:12,fontWeight:700,color:t.text,minWidth:60}}>Sezon {i+1}</div>
+                      <input type="number" value={s.ep} onChange={e=>setNewItem(p=>({...p,seasons:p.seasons.map((x,j)=>j===i?{...x,ep:e.target.value}:x)}))} placeholder="Bölüm"
+                        style={{flex:1,padding:"8px",background:t.input,border:`1.5px solid ${t.inputBorder}`,borderRadius:8,fontSize:13,outline:"none",color:t.text}}/>
+                      <input type="number" step="0.1" value={s.rating} onChange={e=>setNewItem(p=>({...p,seasons:p.seasons.map((x,j)=>j===i?{...x,rating:e.target.value}:x)}))} placeholder="IMDb"
+                        style={{flex:1,padding:"8px",background:t.input,border:`1.5px solid ${t.inputBorder}`,borderRadius:8,fontSize:13,outline:"none",color:t.text}}/>
+                      {i>0&&<button onClick={()=>setNewItem(p=>({...p,seasons:p.seasons.filter((_,j)=>j!==i)}))} style={{background:"none",border:"none",color:t.faint,fontSize:18,cursor:"pointer"}}>×</button>}
+                    </div>
+                  ))}
+                  <button className="press" onClick={()=>setNewItem(p=>({...p,seasons:[...p.seasons,{s:p.seasons.length+1,ep:0,rating:""}]}))}
+                    style={{background:"none",border:`1.5px dashed ${t.border}`,borderRadius:8,padding:"8px 14px",color:t.faint,fontSize:12,fontWeight:600,cursor:"pointer",width:"100%"}}>+ Sezon Ekle</button>
+                </div>
+              )}
+              <button className="press" onClick={addContent} style={{width:"100%",padding:13,background:t.text,border:"none",borderRadius:12,color:t.bg,fontWeight:700,fontSize:14,letterSpacing:1,boxShadow:`3px 3px 0 ${t.faint}`,cursor:"pointer"}}>
+                + EKLE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ SHARE MODAL ═══ */}
+      {shareModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:70,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setShareModal(null)}>
+          <div className="slide-up" onClick={e=>e.stopPropagation()} style={{background:t.bg,borderRadius:"20px 20px 0 0",padding:"16px 18px 36px",width:"100%",maxWidth:430,border:`2px solid ${t.border}`,borderBottom:"none"}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:2,marginBottom:14,color:t.text}}>ÖZEL PAYLAŞ</div>
+            <div style={{display:"flex",gap:12,overflowX:"auto",scrollbarWidth:"none",paddingBottom:4}}>
+              {allUsers.filter(u=>u.id!==ME.id).map(u=>(
+                <div key={u.id} onClick={()=>sharePrivately(shareModal,u.id)} className="press" style={{textAlign:"center",flexShrink:0}}>
+                  <div style={{width:54,height:54,borderRadius:14,background:u.color||"#555",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,margin:"0 auto 6px",border:`2px solid ${t.border}`}}>{u.avatar||"🎬"}</div>
+                  <div style={{fontSize:11,color:t.sub,fontWeight:600,maxWidth:56,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.name.split(" ")[0]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ STORY MODAL ═══ */}
+      {storyModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:80,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setStoryModal(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:380,padding:24,textAlign:"center"}}>
+            <div style={{width:72,height:72,borderRadius:18,background:storyModal.u?.color||"#555",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 12px",border:"3px solid #f97316"}}>{storyModal.u?.avatar||"🎬"}</div>
+            <div style={{fontWeight:700,fontSize:16,color:"#fff",marginBottom:6}}>{storyModal.u?.username||storyModal.username}</div>
+            <div style={{fontSize:18,fontWeight:700,color:"#fff",marginBottom:8}}>{storyModal.title}</div>
+            {storyModal.movie&&<div style={{fontSize:14,color:"#aaa",marginBottom:16}}>🎬 {storyModal.movie}</div>}
+            <div style={{fontSize:12,color:"#666"}}>{storyModal.time} önce</div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ ADD STORY MODAL ═══ */}
+      {addStoryModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:70,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setAddStoryModal(false)}>
+          <div className="slide-up" onClick={e=>e.stopPropagation()} style={{background:t.bg,borderRadius:"20px 20px 0 0",padding:"16px 18px 36px",width:"100%",maxWidth:430,border:`2px solid ${t.border}`,borderBottom:"none"}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:2,marginBottom:14,color:t.text}}>HİKAYE PAYLAŞ</div>
+            {[{k:"storyText",l:"MESAJIN *",ph:"Bugün şunu izledim..."},{k:"storyMovie",l:"FİLM / DİZİ ADI",ph:"Örn: Interstellar"}].map(f=>(
+              <div key={f.k} style={{marginBottom:12}}>
+                <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:5}}>{f.l}</div>
+                <input value={newItem[f.k]||""} onChange={e=>setNewItem(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
+                  style={{width:"100%",padding:"11px 14px",background:t.input,border:`1.5px solid ${t.inputBorder}`,borderRadius:10,fontSize:14,outline:"none",color:t.text,boxSizing:"border-box"}}/>
+              </div>
+            ))}
+            <button className="press" onClick={addStory} style={{width:"100%",padding:13,background:t.text,border:"none",borderRadius:12,color:t.bg,fontWeight:700,fontSize:14,letterSpacing:1}}>
+              PAYLAŞ
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ PROFILE EDIT MODAL ═══ */}
+      {profileEditModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:70,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setProfileEditModal(false)}>
+          <div className="slide-up" onClick={e=>e.stopPropagation()} style={{background:t.bg,borderRadius:"20px 20px 0 0",padding:"16px 18px 36px",width:"100%",maxWidth:430,border:`2px solid ${t.border}`,borderBottom:"none"}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:2,marginBottom:14,color:t.text}}>PROFİLİ DÜZENLE</div>
+            <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:8}}>BIO</div>
+            <textarea value={editBio} onChange={e=>setEditBio(e.target.value)} placeholder="Kendini tanıt..."
+              style={{width:"100%",padding:"11px 14px",background:t.input,border:`1.5px solid ${t.inputBorder}`,borderRadius:10,fontSize:14,resize:"none",outline:"none",minHeight:90,boxSizing:"border-box",color:t.text,marginBottom:16}}/>
+            <button className="press" onClick={()=>updateProfile(editBio)} style={{width:"100%",padding:13,background:t.text,border:"none",borderRadius:12,color:t.bg,fontWeight:700,fontSize:14,letterSpacing:1}}>
+              KAYDET
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ STATS MODAL ═══ */}
+      {statsModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:70,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setStatsModal(false)}>
+          <div className="slide-up" onClick={e=>e.stopPropagation()} style={{background:t.bg,borderRadius:"20px 20px 0 0",padding:"16px 18px 40px",width:"100%",maxWidth:430,border:`2px solid ${t.border}`,borderBottom:"none"}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:2,marginBottom:18,color:t.text}}>İSTATİSTİKLER</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+              {[
+                {l:"Toplam İzlenen",v:watched.length+" içerik",icon:"🎬"},
+                {l:"Toplam Süre",v:`${Math.floor(totalMins/60)}s ${totalMins%60}dk`,icon:"⏱️"},
+                {l:"En Sevilen Tür",v:topGenre?topGenre[0]:"—",icon:"🏆"},
+                {l:"Şiddetle Tavsiye",v:getListItems("recommend").length+" film",icon:"👍"},
+                {l:"Zaman Kaybı",v:getListItems("avoid").length+" film",icon:"🚫"},
+                {l:"İzleyeceklerim",v:getListItems("watchlist").length+" film",icon:"⏰"},
+              ].map((s,i)=>(
+                <div key={i} style={{background:t.card,borderRadius:12,padding:"14px 12px",border:`1.5px solid ${t.border}`}}>
+                  <div style={{fontSize:22,marginBottom:6}}>{s.icon}</div>
+                  <div style={{fontSize:10,color:t.faint,fontWeight:600,letterSpacing:0.5,marginBottom:3}}>{s.l.toUpperCase()}</div>
+                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,color:t.text,letterSpacing:1}}>{s.v}</div>
+                </div>
+              ))}
+            </div>
+            {/* Genre chart */}
+            {Object.keys(genreCounts).length>0&&(
+              <div>
+                <div style={{fontSize:9,color:t.faint,fontWeight:700,letterSpacing:1,marginBottom:10}}>TÜRLERE GÖRE</div>
+                {Object.entries(genreCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([genre,cnt])=>(
+                  <div key={genre} style={{marginBottom:8}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                      <span style={{fontSize:12,fontWeight:600,color:t.text}}>{genre}</span>
+                      <span style={{fontSize:12,color:t.faint}}>{cnt}</span>
+                    </div>
+                    <div style={{height:5,background:t.border,borderRadius:3,overflow:"hidden"}}>
+                      <div style={{width:`${(cnt/watched.length)*100}%`,height:"100%",background:t.text,borderRadius:3}}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── MasonryGrid ───
+function MasonryGrid({movies,onOpen,getUserData,pct,sc,dm,comments,IMG,GENRE_MAP,t}){
+  const left=movies.filter((_,i)=>i%2===0);
+  const right=movies.filter((_,i)=>i%2===1);
+  const Card=({m,tall})=>{
+    const poster=m._tmdb?(m.poster_path?`${IMG}${m.poster_path}`:null):m.poster;
+    const rating=m._tmdb?(m.vote_average?.toFixed(1)||"?"):m.rating;
+    const score=m._tmdb?pct(m.vote_average):(m.recommend||0);
+    const year=m._tmdb?(m.release_date?.slice(0,4)||m.first_air_date?.slice(0,4)||""):m.year;
+    const genre=m._tmdb?(m.genre_ids?.[0]?GENRE_MAP[m.genre_ids[0]]:""):m.genre;
+    const ud=getUserData(m.id);
+    const h=tall?265:185;
+    return(
+      <div onClick={()=>onOpen(m)} className="press" style={{background:t.card,borderRadius:14,overflow:"hidden",marginBottom:8,border:`1px solid ${t.border}`,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}}>
+        <div style={{position:"relative",height:h,background:t.border,overflow:"hidden"}}>
+          {poster?<img src={poster} style={{width:"100%",height:"100%",objectFit:"cover"}} loading="lazy" onError={e=>e.target.style.display="none"}/>
+            :<div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",padding:8,textAlign:"center"}}><span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:t.faint,lineHeight:1.2}}>{m.title||m.name}</span></div>}
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.75) 0%,transparent 55%)"}}/>
+          <div style={{position:"absolute",top:7,right:7,background:"rgba(0,0,0,0.6)",borderRadius:20,padding:"2px 7px",display:"flex",alignItems:"center",gap:2}}>
+            <span style={{fontSize:9,color:"#fbbf24",fontWeight:800}}>★</span>
+            <span style={{fontSize:9,fontWeight:700,color:"#fff"}}>{rating}</span>
+          </div>
+          {m.type==="dizi"&&<div style={{position:"absolute",top:7,left:7,background:"#7c3aed",borderRadius:5,padding:"2px 6px"}}><span style={{fontSize:8,fontWeight:700,color:"#fff"}}>DİZİ</span></div>}
+          {ud.watched&&<div style={{position:"absolute",top:m.type==="dizi"?26:7,left:7,width:17,height:17,background:t.text,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center"}}><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={t.bg} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>}
+          <div style={{position:"absolute",bottom:7,left:8,right:8}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:"#fff",letterSpacing:0.4,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.title||m.name}</div>
+          </div>
+        </div>
+        <div style={{padding:"7px 9px 8px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:10,color:t.faint,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{year}{genre?" · "+genre:""}</span>
+            <span style={{fontSize:10,fontWeight:700,color:sc(m.vote_average||m.rating/10,dm),flexShrink:0}}>%{score}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  return(
+    <div style={{display:"flex",gap:8,padding:"8px 12px",alignItems:"flex-start"}}>
+      <div style={{flex:1}}>{left.map((m,i)=><Card key={m.id} m={m} tall={i%3===0}/>)}</div>
+      <div style={{flex:1,marginTop:22}}>{right.map((m,i)=><Card key={m.id} m={m} tall={i%3===1}/>)}</div>
+    </div>
+  );
+}
+
+// ─── FeedCard ───
+function FeedCard({item,idx,t,dm,liked,onLike,onOpen,saved,onSave,onShare,comments,allUsers,onUserClick,getUserData,LISTS,pct,sc,IMG,IMG_BIG}){
+  const user=allUsers[idx%allUsers.length]||allUsers[0];
+  const [loc,setLoc]=useState(liked);
+  const [anim,setAnim]=useState(false);
+  const touchX=useRef(null);
+  const [slide,setSlide]=useState(0);
+  const doLike=()=>{setLoc(p=>!p);setAnim(true);setTimeout(()=>setAnim(false),450);onLike();};
+  const imgs=[
+    item._tmdb&&item.backdrop_path?`${IMG_BIG}${item.backdrop_path}`:null,
+    item._tmdb&&item.poster_path?`${IMG_BIG}${item.poster_path}`:null,
+    item.backdrop||null, item.poster||null,
+  ].filter(Boolean).slice(0,3);
+  const ud=getUserData(item.id);
+  const actions=["izledi","öneriyor","listeye ekledi","harika buldu","kaçırmayın!"][idx%5];
+  const timeAgo=["2 saat önce","dün","3 gün önce","1 hafta önce","az önce"][idx%5];
+  const baseLikes=item._tmdb?Math.floor(item.popularity||0)+20:Math.floor((item.votes||0)/1000)+50;
+
+  return(
+    <div style={{background:t.card,margin:"0 0 6px",borderTop:`1.5px solid ${t.border}`,borderBottom:`1.5px solid ${t.border}`}} className="fade-up">
+      {/* User row */}
+      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 13px"}}>
+        <div onClick={()=>onUserClick(user)} className="press" style={{width:38,height:38,borderRadius:11,background:user.color||"#555",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,border:`2px solid ${t.text}`,boxShadow:`2px 2px 0 ${t.border}`,flexShrink:0}}>
+          {user.avatar||"🎬"}
+        </div>
+        <div style={{flex:1}} onClick={()=>onUserClick(user)}>
+          <span style={{fontWeight:800,fontSize:14,color:t.text}}>{user.name}</span>
+          <span style={{fontSize:13,color:t.faint}}> {actions}</span>
+          {item.type==="dizi"&&<span style={{fontSize:10,fontWeight:700,color:"#7c3aed",marginLeft:6,background:"#7c3aed20",padding:"1px 6px",borderRadius:10}}>DİZİ</span>}
+          <div style={{fontSize:11,color:t.faint,marginTop:1}}>{timeAgo}</div>
+        </div>
+        <button style={{background:"none",border:"none",fontSize:18,color:t.faint,padding:4}}>···</button>
+      </div>
+
+      {/* Overview ABOVE image (Twitter-style) */}
+      {(item.overview)&&(
+        <div style={{padding:"0 13px 10px",fontSize:14,color:t.sub,lineHeight:1.55,fontWeight:400}}>
+          <span style={{fontWeight:700,color:t.text,cursor:"pointer"}} onClick={onOpen}>{item.title} </span>
+          <span>{item.overview.slice(0,120)}{item.overview.length>120?"...":""}</span>
+        </div>
+      )}
+
+      {/* Image */}
+      <div style={{position:"relative",background:t.border,overflow:"hidden"}}
+        onTouchStart={e=>touchX.current=e.touches[0].clientX}
+        onTouchEnd={e=>{if(!touchX.current)return;const d=touchX.current-e.changedTouches[0].clientX;if(d>50&&slide<imgs.length-1)setSlide(p=>p+1);else if(d<-50&&slide>0)setSlide(p=>p-1);touchX.current=null;}}>
+        {imgs.length>0?(
+          <div style={{display:"flex",transition:"transform 0.3s ease",transform:`translateX(-${slide*100}%)`}}>
+            {imgs.map((src,i)=><img key={i} src={src} style={{width:"100%",aspectRatio:"16/9",objectFit:"cover",flexShrink:0}} loading="lazy" onError={e=>e.target.style.display="none"}/>)}
+          </div>
+        ):(
+          <div style={{width:"100%",aspectRatio:"16/9",display:"flex",alignItems:"center",justifyContent:"center",background:t.border}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,color:t.faint,letterSpacing:2}}>{item.title}</div>
+          </div>
+        )}
+        {imgs.length>1&&(
+          <div style={{position:"absolute",bottom:8,left:"50%",transform:"translateX(-50%)",display:"flex",gap:4}}>
+            {imgs.map((_,i)=><div key={i} style={{width:i===slide?16:5,height:5,borderRadius:3,background:i===slide?"#fff":"rgba(255,255,255,0.4)",transition:"all 0.2s"}}/>)}
+          </div>
+        )}
+        <div style={{position:"absolute",top:10,right:10,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(6px)",borderRadius:8,padding:"3px 8px",display:"flex",alignItems:"center",gap:3}}>
+          <span style={{fontSize:10,fontWeight:800,color:"#fbbf24"}}>★</span>
+          <span style={{fontSize:11,fontWeight:700,color:"#fff"}}>{item._tmdb?(item.vote_average?.toFixed(1)||"?"):item.rating}</span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{padding:"9px 13px 5px",display:"flex",alignItems:"center",gap:14}}>
+        <button className="press" onClick={doLike} style={{background:"none",border:"none",padding:0}}>
+          <div className={anim?"heart":""} style={{fontSize:23,lineHeight:1}}>{loc?"❤️":"🤍"}</div>
+        </button>
+        <button className="press" onClick={onOpen} style={{background:"none",border:"none",padding:0,fontSize:21,lineHeight:1}}>💬</button>
+        <button className="press" onClick={onShare} style={{background:"none",border:"none",padding:0,fontSize:18,lineHeight:1}}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={t.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+        <div style={{flex:1}}/>
+        <button className="press" onClick={onSave} style={{background:"none",border:"none",padding:0,fontSize:21,lineHeight:1}}>
+          {saved?"🔖":"🏷️"}
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div style={{padding:"0 13px 9px"}}>
+        <div style={{fontWeight:700,fontSize:13,color:t.text,marginBottom:3}}>{(baseLikes+(loc?1:0)).toLocaleString()} beğeni</div>
+        {Object.entries(LISTS).some(([k])=>ud[k])&&(
+          <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:5}}>
+            {Object.entries(LISTS).map(([k,v])=>ud[k]?<span key={k} style={{fontSize:9,fontWeight:700,color:t.bg,background:t.text,padding:"2px 8px",borderRadius:20}}>{v.label}</span>:null)}
+          </div>
+        )}
+        {comments.length>0&&(
+          <div style={{fontSize:12,marginTop:3}}>
+            <span style={{color:t.faint,cursor:"pointer"}} onClick={onOpen}>Tüm {comments.length} yorum · </span>
+            <span style={{fontWeight:700,color:t.text}}>{allUsers.find(u=>u.id===comments[0].userId)?.username||"kullanici"} </span>
+            <span style={{color:t.sub}}>{comments[0].text.slice(0,60)}{comments[0].text.length>60?"...":""}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── ProfilePage ───
+function ProfilePage({user,isMe,t,dm,getListItems,activeList,setActiveList,onItemClick,LISTS,IMG,onAddItem,onEditBio,onStats,onLogout,ListIcon}){
+  const total=getListItems("watched").length;
+  return(
+    <div className="fade-up">
+      <div style={{padding:"16px 16px 0"}}>
+        <div style={{display:"flex",gap:14,marginBottom:12}}>
+          <div style={{width:76,height:76,borderRadius:18,background:user.color||"#555",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,flexShrink:0,border:`2.5px solid ${t.text}`,boxShadow:`4px 4px 0 ${t.border}`}}>{user.avatar||"🎬"}</div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:800,fontSize:17,color:t.text}}>{user.name}</div>
+            <div style={{fontSize:12,color:t.faint,marginBottom:5}}>@{user.username||user.name}</div>
+            {user.bio?<div style={{fontSize:13,color:t.sub,lineHeight:1.5}}>{user.bio}</div>:<div style={{fontSize:12,color:t.faint,fontStyle:"italic"}}>Bio henüz eklenmedi</div>}
+          </div>
+        </div>
+        <div style={{display:"flex",background:t.card,borderRadius:12,border:`1.5px solid ${t.border}`,marginBottom:10,overflow:"hidden"}}>
+          {[[total,"Film"],[user.followers||0,"Takipçi"],[user.following||0,"Takip"]].map(([v,l],i)=>(
+            <div key={i} style={{flex:1,textAlign:"center",padding:"11px 8px",borderRight:i<2?`1.5px solid ${t.border}`:"none"}}>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,color:t.text,letterSpacing:1}}>{v}</div>
+              <div style={{fontSize:10,color:t.faint,fontWeight:600}}>{l}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:6,marginBottom:10}}>
+          <button className="press" onClick={onEditBio} style={{flex:1,padding:"9px",borderRadius:10,border:`1.5px solid ${t.border}`,background:t.card,color:t.text,fontWeight:700,fontSize:12}}>✏️ Bio Düzenle</button>
+          <button className="press" onClick={onStats} style={{flex:1,padding:"9px",borderRadius:10,border:`1.5px solid ${t.border}`,background:t.card,color:t.text,fontWeight:700,fontSize:12}}>📊 İstatistik</button>
+          <button className="press" onClick={onLogout} style={{padding:"9px 12px",borderRadius:10,border:`1.5px solid ${t.border}`,background:t.card,color:"#dc2626",fontWeight:700,fontSize:12}}>Çıkış</button>
+        </div>
+      </div>
+
+      {/* List tabs */}
+      <div style={{display:"flex",borderBottom:`2px solid ${t.text}`,overflowX:"auto",scrollbarWidth:"none",padding:"0 8px"}}>
+        {Object.entries(LISTS).map(([k])=>(
+          <button key={k} onClick={()=>setActiveList(k)} style={{padding:"9px 11px",background:"none",border:"none",borderBottom:activeList===k?`3px solid ${t.text}`:"3px solid transparent",display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0,marginBottom:-2,cursor:"pointer"}}>
+            <div style={{opacity:activeList===k?1:0.3}}><ListIcon type={k} active={activeList===k} size={17} color={t.text}/></div>
+            <span style={{fontSize:8,color:activeList===k?t.text:t.faint,fontWeight:700}}>{getListItems(k).length}</span>
+          </button>
+        ))}
+      </div>
+
+      {getListItems(activeList).length===0?(
+        <div style={{textAlign:"center",padding:"50px 20px"}}>
+          <div style={{marginBottom:12,opacity:0.2}}><ListIcon type={activeList} active={false} size={42} color={t.text}/></div>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,letterSpacing:1,color:t.faint,marginBottom:4}}>HENÜZ İÇERİK YOK</div>
+          <div style={{fontSize:13,color:t.faint}}>İçeriklere tıklayarak listene ekleyebilirsin</div>
+        </div>
+      ):(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:2,padding:2}}>
+          {getListItems(activeList).map(m=>{
+            const poster=m._tmdb?(m.poster_path?`${IMG}${m.poster_path}`:null):m.poster;
+            return(
+              <div key={m.id} onClick={()=>onItemClick(m)} className="press" style={{position:"relative",aspectRatio:"2/3",background:t.border,overflow:"hidden"}}>
+                {poster?<img src={poster} style={{width:"100%",height:"100%",objectFit:"cover"}} loading="lazy" onError={e=>e.target.style.display="none"}/>
+                  :<div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",padding:4,textAlign:"center"}}><span style={{fontSize:9,color:t.faint,fontWeight:600,lineHeight:1.3}}>{m.title}</span></div>}
+                <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.65) 0%,transparent 50%)"}}/>
+                {m.type==="dizi"&&<div style={{position:"absolute",top:3,right:3,background:"#7c3aed",borderRadius:4,padding:"1px 5px"}}><span style={{fontSize:7,fontWeight:700,color:"#fff"}}>DİZİ</span></div>}
+                <div style={{position:"absolute",bottom:3,left:4,right:4}}>
+                  <div style={{fontSize:8,fontWeight:700,color:"#fff",lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.title}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+  <script>
+    if('serviceWorker' in navigator){
+      window.addEventListener('load',()=>{
+        navigator.serviceWorker.register('sw.js').catch(()=>{});
+      });
+    }
+  </script>
+</body>
+</html>
