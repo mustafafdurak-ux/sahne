@@ -16,13 +16,39 @@
     html,body,#root{height:100%;width:100%;}
     body{background:#faf8f3;font-family:'Outfit',sans-serif;overflow-x:hidden;padding-top:env(safe-area-inset-top);}
     ::-webkit-scrollbar{display:none;}
+    #loading{position:fixed;inset:0;background:#faf8f3;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;font-family:'Outfit',sans-serif;}
+    #loading .logo{font-size:52px;letter-spacing:4px;color:#1a1a1a;margin-bottom:8px;font-weight:900;}
+    #loading .sub{font-size:11px;letter-spacing:3px;color:#bbb;margin-bottom:32px;}
+    #loading .strip{display:flex;gap:4px;}
+    #loading .hole{width:20px;height:14px;background:#e8e0d0;border-radius:2px;border:1px solid #d0c8b8;}
+    @keyframes ldpulse{0%,100%{opacity:0.3}50%{opacity:1}}
+    #loading .hole:nth-child(odd){animation:ldpulse 1s ease-in-out infinite;}
+    #loading .hole:nth-child(even){animation:ldpulse 1s ease-in-out 0.5s infinite;}
   </style>
 </head>
 <body>
+  <div id="loading">
+    <div class="logo">🎬 SAHNE</div>
+    <div class="sub">SİNEMASEVERLERİN BULUŞMA YERİ</div>
+    <div class="strip">
+      <div class="hole"></div><div class="hole"></div><div class="hole"></div>
+      <div class="hole"></div><div class="hole"></div><div class="hole"></div>
+      <div class="hole"></div><div class="hole"></div>
+    </div>
+  </div>
+  <script>
+    window.__babelReady = false;
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        var ld = document.getElementById('loading');
+        if(ld) ld.style.display = 'none';
+      }, 8000); // fallback hide after 8s
+    });
+  </script>
   <div id="root"></div>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js"></script>
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef } = React;
 
@@ -1208,6 +1234,8 @@ function ProfilePage({user,isMe,t,dm,getListItems,activeList,setActiveList,onIte
 }
 
 
+    const ld = document.getElementById('loading');
+    if(ld) ld.style.display = 'none';
     ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   </script>
   <script>
