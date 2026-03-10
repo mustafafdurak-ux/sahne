@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#1a1a1a"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Sahne"/>
+<title>Sahne 🎬</title>
+<link rel="manifest" href="manifest.json"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#faf8f3;--card:#fff;--border:#e8e4dc;--text:#1a1a1a;--sub:#888;--faint:#bbb;--strip:#e8e0d0;--input:#fff}
+.dark{--bg:#0f0f0f;--card:#1a1a1a;--border:#2a2a2a;--text:#f0ece4;--sub:#888;--faint:#444;--strip:#1a1a1a;--input:#222}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{overflow-x:hidden;width:100%}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;max-width:430px;margin:0 auto;min-height:100vh;transition:background .3s,color .3s;overflow-x:hidden}
+::-webkit-scrollbar{display:none}
+button{font-family:'Outfit',sans-serif;cursor:pointer}
+input,textarea{font-family:'Outfit',sans-serif}
+.press{transition:transform .12s,opacity .12s}
+.press:active{transform:scale(.92);opacity:.6}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fade{animation:fadeUp .28s ease both}
+
+/* STRIP - vertical sides */
+.filmstrip-left,.filmstrip-right{position:fixed;top:0;bottom:0;width:10px;background:var(--strip);display:flex;flex-direction:column;justify-content:space-around;align-items:center;z-index:5;pointer-events:none}
+.filmstrip-left{left:0;border-right:1px solid #ccc2}
+.filmstrip-right{right:0;border-left:1px solid #ccc2}
+.hole{width:6px;height:10px;background:var(--bg);border-radius:1px;border:1px solid #ccc2;flex-shrink:0}
+/* nav strip still horizontal */
+.nav-strip{height:7px;background:var(--strip);display:flex;gap:3px;padding:0 8px;align-items:center;border-top:1px solid #ccc2}
+.nav-strip .hole{width:16px;height:4px}
+
+/* SCREEN SYSTEM */
+.screen{display:none;padding-bottom:88px;margin:0 10px}
+.screen.on{display:block}
+
+/* AUTH */
+#s-auth{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;padding-top:36px}
+.auth-logo{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:4px;line-height:1;margin-bottom:4px}
+.auth-tag{font-size:10px;letter-spacing:3px;color:var(--faint);margin-bottom:32px}
+.auth-box{width:100%;max-width:340px}
+.tab-row{display:flex;background:var(--card);border-radius:12px;border:1.5px solid var(--border);overflow:hidden;margin-bottom:18px}
+.tab-btn{flex:1;padding:11px;background:transparent;color:var(--sub);font-weight:700;font-size:13px;border:none}
+.tab-btn.on{background:var(--text);color:var(--bg)}
+.field{margin-bottom:11px}
+.flabel{font-size:9px;color:var(--faint);font-weight:700;letter-spacing:1px;margin-bottom:4px}
+.finput{width:100%;padding:11px 13px;background:var(--input);border:1.5px solid var(--border);border-radius:9px;font-size:14px;outline:none;color:var(--text)}
+.btn-main{width:100%;padding:13px;background:var(--text);border:none;border-radius:10px;color:var(--bg);font-weight:700;font-size:14px;letter-spacing:1px;box-shadow:3px 3px 0 #5554;margin-top:4px}
+.btn-ghost{width:100%;padding:10px;background:transparent;border:1.5px solid var(--border);border-radius:10px;color:var(--sub);font-weight:600;font-size:13px;margin-top:8px}
+.err{font-size:12px;color:#dc2626;font-weight:600;margin-bottom:4px}
+
+/* HEADER */
+#header{background:var(--bg);position:sticky;top:0;z-index:20;border-bottom:2px solid var(--text);padding:10px 14px 8px;display:flex;align-items:center;justify-content:space-between;margin:0 10px}
+.h-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;line-height:1}
+.h-sub{font-size:8px;letter-spacing:3px;color:var(--faint);font-weight:600}
+.h-btns{display:flex;gap:7px;align-items:center}
+.h-btn{width:32px;height:32px;border-radius:8px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;font-size:18px;position:relative}
+.h-btn.add{background:var(--text);color:var(--bg);font-size:22px;font-weight:300}
+.badge{position:absolute;top:3px;right:3px;width:7px;height:7px;background:#dc2626;border-radius:50%;border:1.5px solid var(--bg)}
+
+/* NAV */
+#nav{position:fixed;bottom:0;left:0;right:0;z-index:30;max-width:430px;margin:0 auto}
+.nav-bar{background:var(--bg);display:flex;padding:8px 0 20px;border-top:1px solid var(--border)}
+.nav-btn{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:3px 0}
+.nav-lbl{font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:1px;color:var(--faint)}
+.nav-btn.on .nav-lbl{color:var(--text)}
+.nav-dot{width:14px;height:2px;background:var(--text);border-radius:1px}
+
+/* FEED */
+.feed-card{background:var(--card);border-top:1.5px solid var(--border);border-bottom:1.5px solid var(--border);margin-bottom:5px}
+.fc-user{display:flex;align-items:center;gap:10px;padding:10px 13px}
+.fc-av{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid var(--text);flex-shrink:0}
+.fc-text{font-size:14px;color:var(--sub);line-height:1.5;padding:0 13px 9px}
+.fc-text b{color:var(--text)}
+.fc-img{position:relative;overflow:hidden;background:var(--border)}
+.fc-img img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+.fc-no-img{width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--faint);letter-spacing:2px}
+.fc-rtag{position:absolute;top:9px;right:9px;background:rgba(0,0,0,.65);border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;color:#fff}
+.fc-actions{display:flex;align-items:center;gap:13px;padding:9px 13px 5px}
+.fc-act{background:none;border:none;font-size:22px;padding:0;line-height:1}
+.fc-likes{font-weight:700;font-size:13px;padding:0 13px 9px}
+
+/* DISCOVER */
+.masonry{display:flex;gap:8px;padding:8px 12px}
+.m-col{flex:1;display:flex;flex-direction:column;gap:8px}
+.m-card{background:var(--card);border-radius:13px;overflow:hidden;border:1px solid var(--border);cursor:pointer}
+.m-img{position:relative;overflow:hidden;background:var(--border)}
+.m-img img{width:100%;height:100%;object-fit:cover;display:block}
+.m-img-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--faint);padding:6px;text-align:center;line-height:1.2}
+.m-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.72) 0%,transparent 55%)}
+.m-title{position:absolute;bottom:7px;left:8px;right:8px;font-family:'Bebas Neue',sans-serif;font-size:14px;color:#fff;letter-spacing:.4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-rbadge{position:absolute;top:7px;right:7px;background:rgba(0,0,0,.6);border-radius:20px;padding:2px 7px;font-size:9px;font-weight:700;color:#fff}
+.m-info{padding:7px 9px 8px;display:flex;justify-content:space-between;align-items:center}
+.m-meta{font-size:10px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* PROFILE */
+.prof-av{width:76px;height:76px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;border:2.5px solid var(--text);box-shadow:4px 4px 0 var(--border)}
+.prof-stats{display:flex;background:var(--card);border-radius:12px;border:1.5px solid var(--border);margin-bottom:10px;overflow:hidden}
+.ps{flex:1;text-align:center;padding:10px 8px;border-right:1.5px solid var(--border)}
+.ps:last-child{border:none}
+.ps-n{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px}
+.ps-l{font-size:10px;color:var(--faint);font-weight:600}
+.list-tabs{display:flex;border-bottom:2px solid var(--text);overflow-x:auto;scrollbar-width:none;padding:0 6px}
+.ltab{padding:9px 12px;background:none;border:none;border-bottom:3px solid transparent;flex-shrink:0;margin-bottom:-2px;font-size:19px;opacity:.28}
+.ltab.on{border-bottom-color:var(--text);opacity:1}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;padding:2px}
+.gi{position:relative;aspect-ratio:2/3;background:var(--border);overflow:hidden;cursor:pointer}
+.gi img{width:100%;height:100%;object-fit:cover}
+.gi-title{position:absolute;bottom:3px;left:4px;right:4px;font-size:8px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gi-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 50%)}
+
+/* MESSAGES */
+.mi{display:flex;align-items:center;gap:11px;padding:13px;border-bottom:1px solid var(--border);background:var(--card);margin-bottom:1px;cursor:pointer}
+.mi-av{width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;border:2px solid var(--border)}
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 126px)}
+.chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:7px}
+.mb{max-width:72%;padding:9px 13px;border-radius:14px 14px 2px 14px;background:var(--text);color:var(--bg);font-size:14px}
+.mb.theirs{border-radius:14px 14px 14px 2px;background:var(--card);color:var(--text);border:1.5px solid var(--border)}
+.mb-time{font-size:10px;opacity:.4;margin-top:2px;text-align:right}
+.mb.theirs .mb-time{text-align:left}
+.chat-input{padding:9px 13px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;background:var(--card)}
+
+/* MODAL */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.mbox{background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:430px;max-height:93vh;overflow-y:auto;border:2px solid var(--border);border-bottom:none}
+.mstrip{background:var(--strip);height:7px;border-radius:18px 18px 0 0;display:flex;gap:3px;padding:0 10px;align-items:center;border-bottom:1px solid #ccc2}
+.mbody{padding:13px 15px 36px}
+.sec-label{font-size:9px;color:var(--faint);font-weight:700;letter-spacing:1px;margin-bottom:7px}
+.stat3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px}
+.sbox{background:var(--card);border-radius:10px;padding:9px 6px;text-align:center;border:1.5px solid var(--border)}
+.sbox-l{font-size:8px;color:var(--faint);font-weight:700;letter-spacing:1px;margin-bottom:2px}
+.sbox-v{font-size:15px;font-weight:800}
+.lbtns{display:flex;gap:7px;margin-bottom:10px}
+.lbtn{flex:1;aspect-ratio:1;border-radius:11px;border:1.5px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:20px}
+.lbtn.on{background:var(--text);border-color:var(--text)}
+.star-row{display:flex;gap:3px;margin-bottom:13px}
+.st{font-size:36px;cursor:pointer;color:var(--border);line-height:1;transition:color .1s}
+.st.on{color:#ca8a04}
+.cmts{margin-bottom:14px}
+.cmt{display:flex;gap:8px;margin-bottom:9px}
+.cav{width:29px;height:29px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;border:1.5px solid var(--border)}
+.cbub{flex:1;background:var(--card);border-radius:4px 11px 11px 11px;padding:7px 10px;border:1.5px solid var(--border)}
+
+/* SEARCH */
+.search-wrap{padding:10px 13px;position:sticky;top:56px;z-index:15;background:var(--bg);border-bottom:1px solid var(--border)}
+.search-box{position:relative}
+.search-ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);pointer-events:none;opacity:.4}
+.search-in{width:100%;padding:10px 32px 10px 33px;background:var(--input);border:1.5px solid var(--border);border-radius:24px;font-size:14px;outline:none;color:var(--text)}
+.search-clear{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:16px;color:var(--faint)}
+
+/* MISC */
+.genre-tag{background:var(--text);color:var(--bg);padding:3px 11px;border-radius:20px;font-size:11px;font-weight:600}
+.back-header{padding:10px 13px;display:flex;align-items:center;gap:11px;border-bottom:2px solid var(--text);position:sticky;top:0;background:var(--bg);z-index:10}
+.back-title{font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:2px}
+.empty-state{text-align:center;padding:48px 20px}
+.empty-icon{font-size:44px;opacity:.18;margin-bottom:10px}
+.spinner{width:24px;height:24px;border:2.5px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
+.add-modal-inner .field{margin-bottom:10px}
+textarea.finput{resize:none;min-height:72px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- FILM STRIPS (vertical sides) -->
+<div class="filmstrip-left" id="strip-left"></div>
+<div class="filmstrip-right" id="strip-right"></div>
+
+<!-- AUTH -->
+<div id="s-auth">
+  <div class="auth-logo">🎬 SAHNE</div>
+  <div class="auth-tag">SİNEMASEVERLERİN BULUŞMA YERİ</div>
+  <div class="auth-box">
+    <div class="tab-row">
+      <button class="tab-btn on press" id="tab-login" onclick="showAuthTab('login')">GİRİŞ YAP</button>
+      <button class="tab-btn press" id="tab-reg" onclick="showAuthTab('reg')">KAYIT OL</button>
+    </div>
+    <!-- Login -->
+    <div id="form-login">
+      <div class="field"><div class="flabel">E-POSTA</div><input class="finput" id="l-email" type="email" placeholder="ornek@mail.com"/></div>
+      <div class="field"><div class="flabel">ŞİFRE</div><input class="finput" id="l-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <div class="err" id="l-err"></div>
+      <button class="btn-main press" onclick="doLogin()">GİRİŞ YAP</button>
+
+    </div>
+    <!-- Register -->
+    <div id="form-reg" style="display:none">
+      <div class="field"><div class="flabel">AD *</div><input class="finput" id="r-name" type="text" placeholder="Adın"/></div>
+      <div class="field"><div class="flabel">SOYAD</div><input class="finput" id="r-surname" type="text" placeholder="Soyadın"/></div>
+      <div class="field"><div class="flabel">E-POSTA *</div><input class="finput" id="r-email" type="email" placeholder="ornek@mail.com"/></div>
+      <div class="field"><div class="flabel">ŞİFRE *</div><input class="finput" id="r-pass" type="password" placeholder="En az 6 karakter"/></div>
+      <div class="field"><div class="flabel">DOĞUM TARİHİ</div><input class="finput" id="r-age" type="date" placeholder=""/></div>
+      <div class="err" id="r-err"></div>
+      <button class="btn-main press" onclick="doRegister()">KAYIT OL</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP (hidden until auth) -->
+<div id="app" style="display:none" id="app">
+
+  <!-- HEADER -->
+  <div id="header">
+    <div>
+      <div class="h-logo">SAHNE</div>
+      <div class="h-sub">SİNEMASEVERLERİN BULUŞMA YERİ</div>
+    </div>
+    <div class="h-btns">
+      <button class="h-btn press" onclick="toggleDark()" id="dm-btn">🌙</button>
+      <button class="h-btn add press" onclick="openAddModal()">+</button>
+      <button class="h-btn press" onclick="goPage('msgs')">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <div class="badge" id="msg-badge" style="display:none"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- PAGES -->
+  <div class="screen on" id="s-feed"></div>
+  <div class="screen" id="s-discover"></div>
+  <div class="screen" id="s-profile"></div>
+  <div class="screen" id="s-msgs"></div>
+
+  <!-- BOTTOM NAV -->
+  <div id="nav">
+    <div class="filmstrip nav-strip"></div>
+    <div class="nav-bar">
+      <button class="nav-btn on press" id="nb-feed" onclick="goPage('feed')">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <div class="nav-lbl">AKIŞ</div><div class="nav-dot" id="nd-feed"></div>
+      </button>
+      <button class="nav-btn press" id="nb-discover" onclick="goPage('discover')">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <div class="nav-lbl">KEŞİF</div><div class="nav-dot" id="nd-discover" style="display:none"></div>
+      </button>
+      <button class="nav-btn press" id="nb-profile" onclick="goPage('profile')">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div class="nav-lbl">PROFİL</div><div class="nav-dot" id="nd-profile" style="display:none"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="ov" id="detail-modal" style="display:none" onclick="closeDetail()">
+  <div class="mbox slide-up" onclick="event.stopPropagation()">
+    <div class="mstrip" id="dm-strip"></div>
+    <div id="dm-backdrop" style="position:relative;height:170px;overflow:hidden;background:var(--card)"></div>
+    <div class="mbody" id="dm-body"></div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="ov" id="add-modal" style="display:none" onclick="closeAddModal()">
+  <div class="mbox slide-up" onclick="event.stopPropagation()">
+    <div class="mstrip" id="am-strip"></div>
+    <div class="mbody add-modal-inner">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px">FİLM EKLE</div>
+        <button onclick="closeAddModal()" style="background:none;border:none;font-size:22px;font-weight:700;color:var(--sub)">×</button>
+      </div>
+      <div class="field"><div class="flabel">FİLM ADI *</div><input class="finput" id="a-title" placeholder="Örn: Dune"/></div>
+      <div class="field"><div class="flabel">YIL</div><input class="finput" id="a-year" placeholder="2024"/></div>
+      <div class="field"><div class="flabel">TÜR</div><input class="finput" id="a-genre" placeholder="Bilim Kurgu"/></div>
+      <div class="field"><div class="flabel">POSTER URL</div><input class="finput" id="a-poster" placeholder="https://..."/></div>
+      <div class="field"><div class="flabel">FRAGMAN (YouTube)</div><input class="finput" id="a-trailer" placeholder="https://youtube.com/..."/></div>
+      <div class="field"><div class="flabel">KONU</div><textarea class="finput" id="a-overview" placeholder="Filmin özeti..."></textarea></div>
+      <button class="btn-main press" onclick="addCustomMovie()">+ FİLMİ EKLE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='https://api.themoviedb.org/3',KEY='86028ead1ff02303725e433fb9203325';
+const IMG='https://image.tmdb.org/t/p/w342',IMGB='https://image.tmdb.org/t/p/w780';
+const GENRE_MAP={28:'Aksiyon',12:'Macera',16:'Animasyon',35:'Komedi',80:'Suç',18:'Dram',14:'Fantazi',27:'Korku',878:'Bilim Kurgu',53:'Gerilim',10749:'Romantik'};
+
+// State
+let currentUser=null,darkMode=false,activePage='feed';
+let userMovies={},likes={},comments={b1:[{u:4,t:'Nolan harikası 🚀',time:'2s',l:34}],b2:[{u:1,t:'Sinema tarihinin zirvesi.',time:'1g',l:89}]};
+let messages={1:[{from:1,text:'Fight Club\'u izledin mi?',time:'10:30'}],2:[{from:2,text:'Interstellar harika değil mi?',time:'Dün'}]};
+let activeChat=null,feedMovies=[],discoverMovies=[],customMovies=[],searchResults=[];
+let selMovie=null,noteText='',starRating=0,hoverStar=0,commentInput='';
+
+const USERS=[
+  {id:1,name:'Ayşe Kaya',username:'ayse_kaya',av:'🎭',color:'#c2410c'},
+  {id:2,name:'Mert Demir',username:'mert_demir',av:'🎥',color:'#6d28d9'},
+  {id:3,name:'Zeynep Al',username:'zeynep_al',av:'🎞️',color:'#0e7490'},
+  {id:4,name:'Can Yılmaz',username:'can_yilmaz',av:'📽️',color:'#065f46'},
+];
+
+const BUILTIN=[
+  {id:'b1',title:'Interstellar',year:'2014',genre:'Bilim Kurgu',rating:8.7,recommend:92,poster:IMG+'/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',backdrop:IMGB+'/rAiYTfKGqDCRIIqo664sY9XZIvQ.jpg',overview:'Dünya insanlığı besleyemezken bir grup kaşif yeni bir yurt arar.',trailer:'https://www.youtube.com/watch?v=zSWdZVtXT7E',addedBy:4},
+  {id:'b2',title:'The Godfather',year:'1972',genre:'Suç & Dram',rating:9.2,recommend:98,poster:IMG+'/3bhkrj58Vtu7enYsLegHejKInlB.jpg',backdrop:null,overview:'Corleone ailesinin epik suç destanı.',trailer:'https://www.youtube.com/watch?v=sY1S34973zA',addedBy:1},
+  {id:'b3',title:'Inception',year:'2010',genre:'Aksiyon',rating:8.8,recommend:94,poster:IMG+'/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',backdrop:null,overview:'Rüya içinde rüya... Zihinlere sızan hırsızın hikayesi.',trailer:'https://www.youtube.com/watch?v=YoHD9XEInc0',addedBy:2},
+  {id:'b4',title:'Parasite',year:'2019',genre:'Dram',rating:8.5,recommend:96,poster:IMG+'/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg',backdrop:null,overview:'Yoksul aile zengin ailenin hayatına sızar. Oscar\'lı başyapıt.',trailer:'https://www.youtube.com/watch?v=5xH0HfJHsaY',addedBy:3},
+  {id:'b5',title:'The Dark Knight',year:'2008',genre:'Aksiyon',rating:9.0,recommend:97,poster:IMG+'/qJ2tW6WMUDux911r6m7haRef0WH.jpg',backdrop:null,overview:'Batman Joker\'in kaosuna karşı durur.',trailer:'https://www.youtube.com/watch?v=EXeTwQWrcwY',addedBy:2},
+  {id:'b6',title:'Fight Club',year:'1999',genre:'Dram',rating:8.8,recommend:91,poster:IMG+'/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg',backdrop:null,overview:'Uykusuzluk çeken bir adamın dövüş kulübü kurması.',trailer:'https://www.youtube.com/watch?v=SUXWAEX2jlg',addedBy:4},
+  {id:'b7',title:'Pulp Fiction',year:'1994',genre:'Suç',rating:8.9,recommend:93,poster:IMG+'/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',backdrop:null,overview:"LA'da birbiriyle kesişen suç hikayeleri.",trailer:'https://www.youtube.com/watch?v=s7EdQ4FqbhY',addedBy:1},
+  {id:'b8',title:'Spirited Away',year:'2001',genre:'Animasyon',rating:8.6,recommend:95,poster:IMG+'/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg',backdrop:null,overview:'Ruhlar dünyasına sürüklenen Chihiro\'nun mücadelesi.',trailer:'https://www.youtube.com/watch?v=ByXuk9QqQkk',addedBy:3},
+];
+
+const LISTS={watched:{l:'İzlediklerim',ic:'✓'},watchlist:{l:'İzleyeceklerim',ic:'⏰'},recommend:{l:'Tavsiye',ic:'👍'},avoid:{l:'Zaman Kaybı',ic:'🚫'},bucket:{l:'Ölmeden Önce',ic:'★'}};
+const pct=v=>Math.round((v||0)*10);
+const scCol=v=>{const p=pct(v);return p>=75?'#16a34a':p>=50?'#ca8a04':'#dc2626'};
+
+// Strips
+function makeStrips(){
+  // Side strips
+  ['strip-left','strip-right'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.innerHTML='';
+    for(let i=0;i<40;i++){const h=document.createElement('div');h.className='hole';el.appendChild(h);}
+  });
+  // Nav strip + modal strips
+  document.querySelectorAll('.nav-strip,.mstrip').forEach(el=>{
+    el.innerHTML='';
+    for(let i=0;i<18;i++){const h=document.createElement('div');h.className='hole';el.appendChild(h);}
+  });
+}
+
+// Auth
+const stored=s=>localStorage.getItem(s)?JSON.parse(localStorage.getItem(s)):null;
+const store=(s,v)=>localStorage.setItem(s,JSON.stringify(v));
+
+function showAuthTab(t){
+  document.getElementById('tab-login').classList.toggle('on',t==='login');
+  document.getElementById('tab-reg').classList.toggle('on',t==='reg');
+  document.getElementById('form-login').style.display=t==='login'?'':'none';
+  document.getElementById('form-reg').style.display=t==='reg'?'':'none';
+}
+
+function doLogin(){
+  const email=document.getElementById('l-email').value.trim();
+  const pass=document.getElementById('l-pass').value;
+  const users=stored('s_users')||[];
+  const u=users.find(x=>x.email===email&&x.pass===pass);
+  if(!u){document.getElementById('l-err').textContent='E-posta veya şifre hatalı';return;}
+  document.getElementById('l-err').textContent='';
+  startApp(u);
+}
+
+// demo login handled via email/pass: demo@sahne.app / demo123
+// pre-create demo account on first load
+
+function doRegister(){
+  const name=document.getElementById('r-name').value.trim();
+  const email=document.getElementById('r-email').value.trim();
+  const pass=document.getElementById('r-pass').value;
+  if(!name||!email||!pass){document.getElementById('r-err').textContent='Ad, e-posta ve şifre zorunlu';return;}
+  const users=stored('s_users')||[];
+  if(users.find(x=>x.email===email)){document.getElementById('r-err').textContent='Bu e-posta zaten kayıtlı';return;}
+  const u={id:'u_'+Date.now(),name,surname:document.getElementById('r-surname').value,email,pass,age:document.getElementById('r-age').value,username:(name+(document.getElementById('r-surname').value||'')).toLowerCase().replace(/\s/g,'').slice(0,16),av:'🎬',color:'#92400e',bio:'',followers:0,following:0};
+  users.push(u);store('s_users',users);
+  document.getElementById('r-err').textContent='';
+  startApp(u);
+}
+
+function startApp(u){
+  currentUser=u;
+  store('s_user',u);
+  document.getElementById('s-auth').style.display='none';
+  document.getElementById('app').style.display='block';
+  darkMode=stored('s_dm')||false;
+  if(darkMode)document.body.classList.add('dark');
+  document.getElementById('dm-btn').textContent=darkMode?'☀️':'🌙';
+  userMovies=stored('s_lists')||{};
+  likes=stored('s_likes')||{};
+  comments=stored('s_comments')||comments;
+  messages=stored('s_msgs')||messages;
+  customMovies=stored('s_custom')||[];
+  makeStrips();
+  initFeed();
+  loadDiscover();
+}
+
+function toggleDark(){
+  darkMode=!darkMode;
+  document.body.classList.toggle('dark',darkMode);
+  document.getElementById('dm-btn').textContent=darkMode?'☀️':'🌙';
+  store('s_dm',darkMode);
+}
+
+// Pages
+function goPage(p){
+  activePage=p;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.nav-dot').forEach(d=>d.style.display='none');
+  const pg=document.getElementById('s-'+p);
+  if(pg)pg.classList.add('on');
+  const nb=document.getElementById('nb-'+p);
+  if(nb){nb.classList.add('on');const nd=document.getElementById('nd-'+p);if(nd)nd.style.display='block';}
+  const hdr=document.getElementById('header');
+  if(hdr)hdr.style.display=(p==='msgs')?'none':'flex';
+  if(p==='feed')renderFeed();
+  if(p==='profile')renderProfile();
+  if(p==='msgs')renderMsgs();
+}
+
+// FEED
+function initFeed(){
+  feedMovies=[...BUILTIN,...customMovies].sort(()=>Math.random()-.5);
+  renderFeed();
+}
+
+function renderFeed(){
+  const el=document.getElementById('s-feed');
+  if(!feedMovies.length){el.innerHTML='<div class="spinner"></div>';return;}
+  el.innerHTML=feedMovies.map((m,i)=>feedCard(m,i)).join('');
+}
+
+function feedCard(m,i){
+  const u=USERS[i%USERS.length];
+  const actions=['izledi ve beğendi','şiddetle öneriyor','listeye ekledi','harika buldu','önerdi'][i%5];
+  const time=['2 saat önce','dün','3 gün önce','1 hafta önce','az önce'][i%5];
+  const liked=likes[m.id];
+  const base=Math.floor((m.votes||10000)/1000)+20;
+  const poster=m._tmdb?(m.poster_path?IMGB+m.poster_path:null):m.poster;
+  const img=poster?`<img src="${poster}" loading="lazy" onerror="this.style.display='none'">`:`<div class="fc-no-img">${m.title}</div>`;
+  const ud=userMovies[m.id]||{};
+  const badges=Object.keys(LISTS).filter(k=>ud[k]).map(k=>`<span class="badge-sm">${LISTS[k].l}</span>`).join(' ');
+  const cmts=comments[m.id]||[];
+  const rating=m._tmdb?(m.vote_average?.toFixed(1)||'?'):m.rating;
+  return `<div class="feed-card">
+    <div class="fc-user">
+      <div class="fc-av press" style="background:${u.color}" onclick="void 0">${u.av}</div>
+      <div style="flex:1"><b style="font-size:14px">${u.name}</b> <span style="color:var(--sub);font-size:13px">${actions}</span><div style="font-size:11px;color:var(--faint);margin-top:1px">${time}</div></div>
+    </div>
+    ${m.overview?`<div class="fc-text"><b onclick="openDetail('${m.id}')">${m.title}</b> ${m.overview.slice(0,110)}${m.overview.length>110?'...':''}</div>`:''}
+    <div class="fc-img">
+      ${img}
+      <div class="fc-rtag">★ ${rating}</div>
+    </div>
+    <div class="fc-actions">
+      <button class="fc-act press" id="lbtn-${m.id}" onclick="toggleLike('${m.id}')">${liked?'❤️':'🤍'}</button>
+      <button class="fc-act press" onclick="openDetail('${m.id}')">💬</button>
+      <div style="flex:1"></div>
+      <button class="fc-act press" onclick="toggleList('${m.id}','watchlist')">${ud.watchlist?'🔖':'🏷️'}</button>
+    </div>
+    <div class="fc-likes">
+      <div>${(base+(liked?1:0)).toLocaleString()} beğeni</div>
+      ${badges?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">${badges}</div>`:''}
+      ${cmts.length?`<div style="font-size:12px;margin-top:4px;color:var(--sub);cursor:pointer" onclick="openDetail('${m.id}')">Tüm ${cmts.length} yorumu gör · <b style="color:var(--text)">${cmts[0].t?.slice(0,50)||''}</b></div>`:''}
+    </div>
+  </div>`;
+}
+
+function toggleLike(id){
+  likes[id]=!likes[id];
+  store('s_likes',likes);
+  const btn=document.getElementById('lbtn-'+id);
+  if(btn)btn.textContent=likes[id]?'❤️':'🤍';
+}
+
+function toggleList(id,list){
+  if(!userMovies[id])userMovies[id]={};
+  const m=feedMovies.find(x=>x.id===id)||discoverMovies.find(x=>x.id==id)||customMovies.find(x=>x.id===id)||BUILTIN.find(x=>x.id===id);
+  userMovies[id][list]=!userMovies[id][list];
+  if(m)userMovies[id]._item=m;
+  store('s_lists',userMovies);
+}
+
+// DISCOVER
+async function loadDiscover(){
+  const el=document.getElementById('s-discover');
+  el.innerHTML=`<div class="search-wrap"><div class="search-box"><span class="search-ic">🔍</span><input class="search-in" placeholder="Film ara..." oninput="doSearch(this.value)" id="s-input"/></div></div><div id="masonry-wrap"><div class="spinner"></div></div>`;
+  try{
+    const r=await fetch(`${API}/movie/popular?api_key=${KEY}&language=tr-TR&page=1`);
+    const d=await r.json();
+    discoverMovies=(d.results||[]).map(m=>({...m,_tmdb:true}));
+  }catch{}
+  renderMasonry([...discoverMovies,...BUILTIN]);
+}
+
+function renderMasonry(movies){
+  const wrap=document.getElementById('masonry-wrap');
+  if(!wrap)return;
+  const left=movies.filter((_,i)=>i%2===0);
+  const right=movies.filter((_,i)=>i%2===1);
+  const card=(m,tall)=>{
+    const h=tall?260:180;
+    const poster=m._tmdb?(m.poster_path?IMG+m.poster_path:null):m.poster;
+    const rating=m._tmdb?(m.vote_average?.toFixed(1)||'?'):m.rating;
+    const score=m._tmdb?pct(m.vote_average):(m.recommend||0);
+    const year=m._tmdb?(m.release_date?.slice(0,4)||''):m.year;
+    const genre=m._tmdb?(GENRE_MAP[m.genre_ids?.[0]]||''):m.genre;
+    return `<div class="m-card press" onclick="openDetail('${m.id}','tmdb')">
+      <div class="m-img" style="height:${h}px">
+        ${poster?`<img src="${poster}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:`<div class="m-img-ph" style="height:${h}px">${m.title||m.name}</div>`}
+        <div class="m-overlay"></div>
+        <div class="m-title">${m.title||m.name}</div>
+        <div class="m-rbadge">★ ${rating}</div>
+      </div>
+      <div class="m-info"><span class="m-meta">${year}${genre?' · '+genre:''}</span><span style="font-size:10px;font-weight:700;color:${scCol((m.vote_average||0)/10)}">%${score}</span></div>
+    </div>`;
+  };
+  wrap.innerHTML=`<div class="masonry"><div class="m-col">${left.map((m,i)=>card(m,i%3===0)).join('')}</div><div class="m-col" style="margin-top:22px">${right.map((m,i)=>card(m,i%3===1)).join('')}</div></div>`;
+}
+
+async function doSearch(q){
+  if(!q){renderMasonry([...discoverMovies,...BUILTIN]);return;}
+  try{
+    const r=await fetch(`${API}/search/movie?api_key=${KEY}&language=tr-TR&query=${encodeURIComponent(q)}`);
+    const d=await r.json();
+    searchResults=(d.results||[]).map(m=>({...m,_tmdb:true}));
+    renderMasonry(searchResults);
+  }catch{}
+}
+
+// DETAIL
+const allMovies=()=>[...BUILTIN,...customMovies,...feedMovies,...discoverMovies];
+
+async function openDetail(id){
+  const m=allMovies().find(x=>String(x.id)===String(id));
+  if(!m)return;
+  selMovie=m;
+  const ud=userMovies[id]||{};
+  noteText=ud.note||'';
+  starRating=ud.rating||0;
+
+  const bd=document.getElementById('dm-backdrop');
+  const src=m._tmdb?(m.backdrop_path?IMGB+m.backdrop_path:m.poster_path?IMGB+m.poster_path:null):(m.backdrop||m.poster);
+  bd.innerHTML=src?`<img src="${src}" style="width:100%;height:100%;object-fit:cover;filter:brightness(.4)" onerror="this.style.display='none'"><div style="position:absolute;inset:0;background:linear-gradient(to top,var(--bg) 0%,transparent 55%)"></div>`:'';
+  // Close btn
+  bd.innerHTML+=`<button onclick="closeDetail()" style="position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.9);border:none;font-size:15px;font-weight:700;cursor:pointer">×</button>`;
+  // Poster + title
+  const posterSrc=m._tmdb?(m.poster_path?IMG+m.poster_path:null):m.poster;
+  bd.innerHTML+=`<div style="position:absolute;bottom:10px;left:12px;display:flex;gap:10px;align-items:flex-end">
+    ${posterSrc?`<img src="${posterSrc}" style="width:48px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--text);box-shadow:3px 3px 0 var(--text)" onerror="this.style.display='none'">`:''}
+    <div><div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;line-height:1.1">${m.title||m.name}</div><div style="font-size:11px;color:var(--faint)">${m.release_date?.slice(0,4)||m.year||''}</div></div>
+  </div>`;
+
+  renderDetailBody(m,ud);
+  document.getElementById('detail-modal').style.display='flex';
+
+  // Fetch full details if TMDB
+  if(m._tmdb){
+    try{
+      const r=await fetch(`${API}/movie/${m.id}?api_key=${KEY}&language=tr-TR`);
+      const detail=await r.json();
+      if(detail.overview)selMovie={...selMovie,...detail};
+      renderDetailBody(selMovie,userMovies[id]||{});
+    }catch{}
+  }
+}
+
+function renderDetailBody(m,ud){
+  const cmts=comments[m.id]||[];
+  const rating=m._tmdb?(m.vote_average?.toFixed(1)||'?'):m.rating;
+  const score=m._tmdb?pct(m.vote_average):(m.recommend||0);
+  const genres=(m.genres?m.genres.map(g=>g.name):(m.genre_ids?.map(id=>GENRE_MAP[id])||[m.genre])).filter(Boolean);
+
+  let html=`
+  ${m.overview?`<div style="font-size:14px;color:var(--sub);line-height:1.7;margin-bottom:13px">${m.overview}</div>`:''}
+  <div class="stat3">
+    <div class="sbox"><div class="sbox-l">TMDB</div><div class="sbox-v" style="color:${scCol(m.vote_average||m.rating/10)}">%${score}</div></div>
+    <div class="sbox"><div class="sbox-l">IMDB</div><div class="sbox-v" style="color:#ca8a04">★ ${rating}</div></div>
+    <div class="sbox"><div class="sbox-l">YORUM</div><div class="sbox-v" style="color:#2563eb">${cmts.length}</div></div>
+  </div>
+  ${genres.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px">${genres.map(g=>`<span class="genre-tag">${g}</span>`).join('')}</div>`:''}
+  ${m.trailer?`<a href="${m.trailer}" target="_blank" class="trailer-btn" style="text-decoration:none;color:inherit">
+    <div class="play-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+    <div><div style="font-weight:700;font-size:13px">Fragmanı İzle</div><div style="font-size:11px;color:var(--faint)">YouTube</div></div>
+  </a>`:''}
+  <div class="sec-label">PUANIN</div>
+  <div class="star-row" id="star-row">${[1,2,3,4,5].map(s=>`<span class="st ${s<=starRating?'on':''}" onclick="setStar(${s})"  onmouseover="hoverStars(${s})" onmouseout="hoverStars(0)">★</span>`).join('')}</div>
+  <div class="sec-label">NOTUN</div>
+  <textarea class="finput" style="width:100%;margin-bottom:13px;resize:none;min-height:70px;line-height:1.6" placeholder="Bu film hakkında ne düşünüyorsun?" oninput="noteText=this.value">${noteText}</textarea>
+  <div class="sec-label">LİSTEYE EKLE</div>
+  <div class="lbtns">${Object.entries(LISTS).map(([k,v])=>`<button class="lbtn press ${ud[k]?'on':''}" onclick="toggleListModal('${m.id}','${k}')" title="${v.l}" id="lb-${m.id}-${k}">${v.ic}</button>`).join('')}</div>
+  <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:13px" id="list-badges">${Object.entries(LISTS).map(([k,v])=>ud[k]?`<span class="badge-sm">${v.l}</span>`:'').join('')}</div>
+  <div class="sec-label">YORUMLAR (${cmts.length})</div>
+  <div class="cmts">${cmts.map(c=>{const u=USERS.find(x=>x.id===c.u)||{av:'🎬',username:c.username||'kullanici',color:'#555'};return`<div class="cmt"><div class="cav" style="background:${u.color}">${u.av}</div><div class="cbub"><div style="font-weight:700;font-size:11px;margin-bottom:2px">${u.username||c.username}</div><div style="font-size:13px;color:var(--sub)">${c.t}</div><div style="font-size:10px;color:var(--faint);margin-top:2px">♥ ${c.l||0} · ${c.time}</div></div></div>`;}).join('')}</div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
+    <div class="cav" style="background:${currentUser?.color||'#555'}">${currentUser?.av||'🎬'}</div>
+    <input class="finput" style="flex:1" placeholder="Yorum yaz..." id="cmt-input" onkeydown="if(event.key==='Enter')addComment('${m.id}')"/>
+    <button class="btn-main press" style="width:auto;padding:9px 13px;margin:0" onclick="addComment('${m.id}')">Gönder</button>
+  </div>
+  <button class="btn-main press" onclick="saveDetail('${m.id}')">✓ KAYDET</button>`;
+
+  document.getElementById('dm-body').innerHTML=html;
+}
+
+function setStar(s){starRating=starRating===s?0:s;document.querySelectorAll('.st').forEach((el,i)=>el.classList.toggle('on',i<starRating));}
+function hoverStars(s){document.querySelectorAll('.st').forEach((el,i)=>el.classList.toggle('on',s?i<s:i<starRating));}
+
+function toggleListModal(id,list){
+  if(!userMovies[id])userMovies[id]={};
+  userMovies[id][list]=!userMovies[id][list];
+  if(selMovie)userMovies[id]._item=selMovie;
+  store('s_lists',userMovies);
+  const btn=document.getElementById(`lb-${id}-${list}`);
+  if(btn)btn.classList.toggle('on',!!userMovies[id][list]);
+  const badges=document.getElementById('list-badges');
+  if(badges)badges.innerHTML=Object.entries(LISTS).map(([k,v])=>userMovies[id]?.[k]?`<span class="badge-sm">${v.l}</span>`:'').join('');
+}
+
+function addComment(id){
+  const inp=document.getElementById('cmt-input');
+  if(!inp||!inp.value.trim())return;
+  if(!comments[id])comments[id]=[];
+  comments[id].push({u:currentUser?.id,username:currentUser?.username||currentUser?.name,t:inp.value.trim(),l:0,time:'şimdi'});
+  store('s_comments',comments);
+  inp.value='';
+  renderDetailBody(selMovie,userMovies[id]||{});
+}
+
+function saveDetail(id){
+  if(!userMovies[id])userMovies[id]={};
+  const ta=document.querySelector('#dm-body textarea');
+  userMovies[id].note=ta?ta.value:noteText;
+  userMovies[id].rating=starRating;
+  if(selMovie)userMovies[id]._item=selMovie;
+  store('s_lists',userMovies);
+  closeDetail();
+}
+
+function closeDetail(){document.getElementById('detail-modal').style.display='none';selMovie=null;}
+
+// ADD MOVIE
+function openAddModal(){document.getElementById('add-modal').style.display='flex';}
+function closeAddModal(){document.getElementById('add-modal').style.display='none';}
+function addCustomMovie(){
+  const title=document.getElementById('a-title').value.trim();
+  if(!title)return;
+  const m={id:'c_'+Date.now(),title,year:document.getElementById('a-year').value,genre:document.getElementById('a-genre').value,poster:document.getElementById('a-poster').value,trailer:document.getElementById('a-trailer').value,overview:document.getElementById('a-overview').value,rating:0,recommend:0,_custom:true};
+  customMovies.unshift(m);
+  feedMovies.unshift(m);
+  store('s_custom',customMovies);
+  closeAddModal();
+  renderFeed();
+  ['a-title','a-year','a-genre','a-poster','a-trailer','a-overview'].forEach(id=>document.getElementById(id).value='');
+}
+
+// PROFILE
+function renderProfile(){
+  const el=document.getElementById('s-profile');
+  const me=currentUser||{name:'?',av:'🎬',color:'#555',username:'?',bio:'',followers:0,following:0};
+  const watched=getListItems('watched');
+  const tabs=Object.entries(LISTS).map(([k,v])=>`<button class="ltab ${k==='watched'?'on':''} press" id="ltab-${k}" onclick="switchListTab('${k}')">${v.ic}</button>`).join('');
+  el.innerHTML=`<div style="padding:16px 14px 0">
+    <div style="display:flex;gap:13px;margin-bottom:12px">
+      <div class="prof-av" style="background:${me.color}">${me.av}</div>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:17px">${me.name}</div>
+        <div style="font-size:12px;color:var(--faint);margin-bottom:5px">@${me.username}</div>
+        <div style="font-size:13px;color:var(--sub);line-height:1.5">${me.bio||'<span style="font-style:italic;color:var(--faint)">Bio henüz yok</span>'}</div>
+      </div>
+    </div>
+    <div class="prof-stats">
+      <div class="ps"><div class="ps-n">${watched.length}</div><div class="ps-l">FİLM</div></div>
+      <div class="ps"><div class="ps-n">${me.followers||0}</div><div class="ps-l">TAKİPÇİ</div></div>
+      <div class="ps"><div class="ps-n">${me.following||0}</div><div class="ps-l">TAKİP</div></div>
+    </div>
+    <div style="display:flex;gap:7px;margin-bottom:12px;align-items:center">
+      <button class="btn-main press" style="margin:0;font-size:12px;padding:9px;flex:1" onclick="openEditBio()">✏️ Bio Düzenle</button>
+      <button onclick="if(confirm('Çıkış yapmak istiyor musun?'))doLogout()" style="background:none;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--faint);font-size:18px;cursor:pointer" title="Çıkış Yap">⚙️</button>
+    </div>
+  </div>
+  <div class="list-tabs">${tabs}</div>
+  <div id="list-grid"></div>`;
+  renderListGrid('watched');
+}
+
+function switchListTab(k){
+  document.querySelectorAll('.ltab').forEach(b=>b.classList.remove('on'));
+  const el=document.getElementById('ltab-'+k);
+  if(el)el.classList.add('on');
+  renderListGrid(k);
+}
+
+function getListItems(list){return Object.values(userMovies).filter(u=>u[list]&&u._item).map(u=>u._item);}
+
+function renderListGrid(list){
+  const items=getListItems(list);
+  const el=document.getElementById('list-grid');
+  if(!el)return;
+  if(!items.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">${LISTS[list].ic}</div><div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:var(--faint)">HENÜZ İÇERİK YOK</div></div>`;
+    return;
+  }
+  el.innerHTML=`<div class="grid3">${items.map(m=>{const p=m._tmdb?(m.poster_path?IMG+m.poster_path:null):m.poster;return`<div class="gi press" onclick="openDetail('${m.id}')">
+    ${p?`<img src="${p}" loading="lazy" onerror="this.style.display='none'">`:''}
+    <div class="gi-grad"></div><div class="gi-title">${m.title}</div>
+  </div>`;}).join('')}</div>`;
+}
+
+function openEditBio(){
+  const bio=currentUser?.bio||'';
+  const html=`<div class="ov" id="bio-modal" onclick="document.getElementById('bio-modal').remove()">
+    <div class="mbox slide-up" onclick="event.stopPropagation()">
+      <div class="mstrip"></div>
+      <div class="mbody">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:14px">BIO DÜZENLE</div>
+        <div class="flabel">BIO</div>
+        <textarea class="finput" id="bio-input" style="width:100%;resize:none;min-height:90px;margin-bottom:14px">${bio}</textarea>
+        <button class="btn-main press" onclick="saveBio()">KAYDET</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+  makeStrips();
+}
+
+function saveBio(){
+  const v=document.getElementById('bio-input')?.value||'';
+  currentUser={...currentUser,bio:v};
+  store('s_user',currentUser);
+  const users=stored('s_users')||[];
+  const idx=users.findIndex(u=>u.id===currentUser.id);
+  if(idx>=0){users[idx]=currentUser;store('s_users',users);}
+  document.getElementById('bio-modal')?.remove();
+  renderProfile();
+}
+
+function doLogout(){
+  currentUser=null;store('s_user',null);
+  document.getElementById('app').style.display='none';
+  document.getElementById('s-auth').style.display='flex';
+}
+
+// MESSAGES
+function renderMsgs(){
+  const el=document.getElementById('s-msgs');
+  if(activeChat){
+    const u=USERS.find(x=>x.id===activeChat)||{av:'🎬',name:'Kullanıcı',color:'#555'};
+    const msgs=messages[activeChat]||[];
+    el.innerHTML=`
+    <div class="back-header">
+      <button onclick="activeChat=null;renderMsgs()" style="background:none;border:none;cursor:pointer"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="fc-av" style="background:${u.color};width:34px;height:34px;font-size:16px">${u.av}</div>
+      <div><div style="font-weight:700;font-size:14px">${u.name}</div><div style="font-size:10px;color:#22c55e;font-weight:600">● çevrimiçi</div></div>
+    </div>
+    <div class="chat-wrap">
+      <div class="chat-msgs" id="chat-msgs">${msgs.map(m=>{
+        const isMe=m.from===currentUser?.id||m.from==='demo';
+        return`<div style="display:flex;justify-content:${isMe?'flex-end':'flex-start'}">
+          <div class="mb ${isMe?'':'theirs'}">${m.text}<div class="mb-time">${m.time}</div></div>
+        </div>`;
+      }).join('')}</div>
+      <div class="chat-input">
+        <input class="finput" style="flex:1" id="msg-in" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter')sendMsg()"/>
+        <button class="btn-main press" style="width:38px;height:38px;padding:0;margin:0;border-radius:9px;display:flex;align-items:center;justify-content:center" onclick="sendMsg()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>`;
+    setTimeout(()=>{const cm=document.getElementById('chat-msgs');if(cm)cm.scrollTop=cm.scrollHeight;},50);
+  } else {
+    const unread=USERS.filter(u=>{const m=messages[u.id];return m?.length&&m[m.length-1].from!==currentUser?.id;});
+    el.innerHTML=`<div class="back-header">
+      <button onclick="goPage('feed')" style="background:none;border:none;cursor:pointer"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="back-title">MESAJLAR</div>
+    </div>
+    ${USERS.map(u=>{const last=(messages[u.id]||[]).slice(-1)[0];return`<div class="mi press" onclick="activeChat=${u.id};renderMsgs()">
+      <div class="mi-av" style="background:${u.color}">${u.av}</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${u.name}</div><div style="font-size:12px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px">${last?.text||'Mesaj başlat'}</div></div>
+      <div style="font-size:11px;color:var(--faint)">${last?.time||''}</div>
+    </div>`;}).join('')}`;
+  }
+}
+
+function sendMsg(){
+  const inp=document.getElementById('msg-in');
+  if(!inp||!inp.value.trim())return;
+  const now=new Date();
+  if(!messages[activeChat])messages[activeChat]=[];
+  messages[activeChat].push({from:currentUser?.id||'demo',text:inp.value.trim(),time:`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`});
+  store('s_msgs',messages);
+  inp.value='';
+  renderMsgs();
+}
+
+// Init
+window.onload=()=>{
+  makeStrips();
+  // Create demo account if not exists
+  const users=stored('s_users')||[];
+  if(!users.find(u=>u.email==='demo@sahne.app')){
+    users.push({id:'demo',name:'Demo Kullanıcı',username:'demo',email:'demo@sahne.app',pass:'demo123',av:'🎬',color:'#92400e',bio:'Sahne demo hesabı',followers:42,following:12});
+    store('s_users',users);
+  }
+  // Always show auth — no auto-login
+  document.getElementById('s-auth').style.display='flex';
+  document.getElementById('app').style.display='none';
+};
+</script>
+</body>
+</html>
